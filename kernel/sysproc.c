@@ -90,6 +90,7 @@ sys_uptime(void)
   return xticks;
 }
 
+// Lottery scheduler
 // first syscall implemented
 uint64
 sys_settickets(void)

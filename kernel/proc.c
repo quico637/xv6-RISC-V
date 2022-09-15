@@ -6,11 +6,6 @@
 #include "proc.h"
 #include "defs.h"
 
-// included by us
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-
 struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
@@ -390,6 +385,7 @@ exit(int status)
   panic("zombie exit");
 }
 
+
 // Wait for a child process to exit and return its pid.
 // Return -1 if this process has no children.
 int
@@ -439,6 +435,8 @@ wait(uint64 addr)
   }
 }
 
+
+
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:
@@ -467,8 +465,8 @@ scheduler(void)
       release(&p->lock);
     }
 
-    srand((unsigned) time(NULL));
-    int random = (rand() % total_tickets) + 1;
+
+    int random = randomrange(1, total_tickets);
 
     for(p = proc; p < &proc[NPROC]; p++) {    
       acquire(&p->lock);

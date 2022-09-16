@@ -115,7 +115,7 @@ sys_getpinfo(void)
 
   uint64 pstat;
   argaddr(0, &pstat);
-  struct pstat * ps = (struct pstat *) &pstat;
+  //struct pstat * ps = (struct pstat *) &pstat;
 
-  return pinfo(ps);
+  return pinfo(pstat);
 }

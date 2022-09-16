@@ -248,7 +248,7 @@ userinit(void)
 
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
-
+  p->tickets = 1;
   p->state = RUNNABLE;
 
   release(&p->lock);
@@ -295,7 +295,6 @@ fork(void)
     return -1;
   }
   np->sz = p->sz;
-
   np->tickets = p->tickets;
 
   // copy saved user registers.

@@ -106,3 +106,10 @@ sys_settickets(void)
   myproc()->tickets = tickets;
   return 0; // worked
 }
+
+
+uint64
+sys_getpinfo(void)
+{
+  return 0;
+}

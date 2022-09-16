@@ -5,6 +5,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "pstat.h"
 
 uint64
 sys_exit(void)
@@ -111,5 +112,10 @@ sys_settickets(void)
 uint64
 sys_getpinfo(void)
 {
-  return 0;
+
+  uint64 pstat;
+  argaddr(0, &pstat);
+  struct pstat * ps = (struct pstat *) &pstat;
+
+  return pinfo(ps);
 }

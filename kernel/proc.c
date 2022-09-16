@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "pstat.h"
 
 struct cpu cpus[NCPU];
 
@@ -698,4 +699,21 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+int
+pinfo(struct pstat * ps) 
+{
+
+  for(int i = 0; i < NPROC; i++){
+    ps->tickets[i] = (&proc[i])->tickets;
+    ps->pid[i] = (&proc[i])->pid;
+    ps->tickets[i] = 1;
+    ps->tickets[i] = 2;
+  }
+
+  uint64 st;
+  if(copyout(myproc()->pagetable, &st, (char *)&ps, sizeof(st)) < 0)
+    return -1;
+  return 0;
 }

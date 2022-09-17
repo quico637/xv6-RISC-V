@@ -702,18 +702,17 @@ procdump(void)
 }
 
 int
-pinfo(struct pstat * ps) 
+pinfo(uint64 st) 
 {
-
+  struct pstat ps;
   for(int i = 0; i < NPROC; i++){
-    ps->tickets[i] = (&proc[i])->tickets;
-    ps->pid[i] = (&proc[i])->pid;
-    ps->tickets[i] = 1;
-    ps->tickets[i] = 2;
+    ps.tickets[i] = (&proc[i])->tickets;
+    ps.pid[i] = (&proc[i])->pid;
+    ps.inuse[i] = 1;
+    ps.ticks[i] = 2;
   }
 
-  uint64 st;
-  if(copyout(myproc()->pagetable, &st, (char *)&ps, sizeof(st)) < 0)
+  if(copyout(myproc()->pagetable, st, (char *)&ps, sizeof(st)) < 0)
     return -1;
   return 0;
 }

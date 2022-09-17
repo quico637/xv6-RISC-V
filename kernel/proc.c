@@ -708,10 +708,10 @@ pinfo(uint64 ps)
   for(int i = 0; i < NPROC; i++){
     st.tickets[i] = (&proc[i])->tickets;
     st.pid[i] = (&proc[i])->pid;
-    if((&proc[i])->state == RUNNABLE || (&proc[i])->state == RUNNING || (&proc[i])->state == USED || (&proc[i])->state == SLEEPING || (&proc[i])->state == ZOMBIE)
-      st.inuse[i] = 1;
-    else
+    if((&proc[i])->state == UNUSED)
       st.inuse[i] = 0;
+    else
+      st.inuse[i] = 1;
     st.ticks[i] = 2;
   }
 

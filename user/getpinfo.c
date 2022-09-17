@@ -8,6 +8,7 @@ int
 main(int argc, char *argv[])
 {
   fprintf(1, "calling getpinfo...\n");
+  settickets(12);
   struct pstat ps;
   int ret = getpinfo(&ps);
   if (ret < 0){
@@ -16,7 +17,7 @@ main(int argc, char *argv[])
   }
   
   for (int i = 0; i < NPROC; i++)
-    fprintf(1, "%d- Process: %d\tTickets: %d\tTicks: %d\n", i, ps.pid[i], ps.tickets[i], ps.ticks[i]);
+    fprintf(1, "%d- Process: %d\tTickets: %d\tTicks: %d\tUsed: %d\n", i, ps.pid[i], ps.tickets[i], ps.ticks[i], ps.inuse[i]);
 
   fprintf(1, "returning from getpinfo with value %d\n", ret);
 

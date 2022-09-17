@@ -249,7 +249,7 @@ userinit(void)
 
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
-  p->tickets = 1;
+  p->tickets = 4;
   p->state = RUNNABLE;
 
   release(&p->lock);
@@ -702,17 +702,20 @@ procdump(void)
 }
 
 int
-pinfo(uint64 st) 
+pinfo(uint64 ps) 
 {
-  struct pstat ps;
+  struct pstat st;
   for(int i = 0; i < NPROC; i++){
-    ps.tickets[i] = (&proc[i])->tickets;
-    ps.pid[i] = (&proc[i])->pid;
-    ps.inuse[i] = 1;
-    ps.ticks[i] = 2;
+    st.tickets[i] = (&proc[i])->tickets;
+    st.pid[i] = (&proc[i])->pid;
+    if((&proc[i])->state == RUNNABLE || (&proc[i])->state == RUNNING || (&proc[i])->state == USED || (&proc[i])->state == SLEEPING || (&proc[i])->state == ZOMBIE)
+      st.inuse[i] = 1;
+    else
+      st.inuse[i] = 0;
+    st.ticks[i] = 2;
   }
 
-  if(copyout(myproc()->pagetable, st, (char *)&ps, sizeof(st)) < 0)
+  if(copyout(myproc()->pagetable, ps, (char *)&st, sizeof(st)) < 0)
     return -1;
   return 0;
 }

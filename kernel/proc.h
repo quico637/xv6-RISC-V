@@ -97,6 +97,7 @@ struct proc {
 
   // lottery scheduler related fields
   int tickets;
+  int ticks;
 
   // these are private to the process, so p->lock need not be held.
   uint64 kstack;               // Virtual address of kernel stack

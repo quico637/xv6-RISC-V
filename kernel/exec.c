@@ -73,6 +73,10 @@ exec(char *path, char **argv)
   ip = 0;
 
   p = myproc();
+
+  /* SETTING UP NUMBER OF TICKS */
+  p->ticks = 0;
+
   uint64 oldsz = p->sz;
 
   // Allocate two pages at the next page boundary.

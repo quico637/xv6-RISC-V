@@ -249,7 +249,7 @@ userinit(void)
 
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
-  p->tickets = 4;
+  p->tickets = 1; /* DEFAULT PRIORITY */
   p->state = RUNNABLE;
 
   release(&p->lock);
@@ -476,9 +476,10 @@ scheduler(void)
         if (random <= p->tickets) {
           // HAS BEEN SELECTED
           p->state = RUNNING;
+          p->ticks++; /* ASSUMING 1 CLOCK TICK PER QUANTUM */
           c->proc = p;
           swtch(&c->context, &p->context);
-
+          
           // Process is done running for now.
           // It should have changed its p->state before coming back.
           c->proc = 0;
@@ -712,7 +713,7 @@ pinfo(uint64 ps)
       st.inuse[i] = 0;
     else
       st.inuse[i] = 1;
-    st.ticks[i] = 2;
+    st.ticks[i] = (&proc[i])->ticks;
   }
 
   if(copyout(myproc()->pagetable, ps, (char *)&st, sizeof(st)) < 0)

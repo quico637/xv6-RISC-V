@@ -4,16 +4,26 @@
 #include "kernel/pstat.h"
 
 #define NCHILDS 3
+// #define NROWS 5
 
 int main(int argc, char *argv[])
 {
 	fprintf(1, "calling getpinfo...\n");
-	settickets(7);
+	settickets(29);
+
+	if (argc != 2)
+	{
+		fprintf(2, "USAGE: %s <rows_csv_file>\n", argv[0]);
+		exit(-1);
+	}
+
+	const int NROWS = atoi(argv[1]);
+
+	int pids[NCHILDS];
 
 	for (int i = 0; i < NCHILDS; i++)
 	{
-		int pid;
-		switch (pid = fork())
+		switch (pids[i] = fork())
 		{
 		case -1: /* fork() fallÃ³ */
 			fprintf(1, "perror(fork");
@@ -22,7 +32,7 @@ int main(int argc, char *argv[])
 		case 0: /* Ejecucion del proceso hijo tras fork() con Ã©xito */
 			settickets(10 * (i + 1));
 			int b = 0;
-			for (int i = 0; i < 99999999999; i++)
+			for (int i = 0; i < 9999999990; i++)
 			{
 				b = 40 * 40 + i;
 			}
@@ -34,21 +44,49 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	sleep(50);
-
-	struct pstat ps;
-	int ret = getpinfo(&ps);
-	if (ret < 0)
+	int fd = open("salida.csv", 0x200 | 0x001); // O_CREATE | O_WRONLY
+	if (fd < 0)
 	{
-		fprintf(2, "getpinfo error\n");
-		exit(1);
+		fprintf(2, "Cannot open file!.");
+		exit(-1);
 	}
 
-	for (int i = 0; i < NPROC; i++)
-		fprintf(1, "%d- Process: %d\tTickets: %d\tTicks: %d\tUsed: %d\n", i, ps.pid[i], ps.tickets[i], ps.ticks[i], ps.inuse[i]);
+	fprintf(fd, "Process A;Process B;Process C\n");
+	
+	for (int j = 0; j < NROWS; j++)
+	{
+		struct pstat ps;
+		int ret = getpinfo(&ps);
+		if (ret < 0)
+		{
+			fprintf(2, "getpinfo error\n");
+			exit(1);
+		}
 
-	fprintf(1, "returning from getpinfo with value %d\n", ret);
+		for (int i = 0; i < NPROC; i++)
+		{
+			if (ps.inuse[i])
+			{
+				char endl;
+				if (ps.tickets[i] == 30)
+					endl = '\n';
+				else
+					endl = ';';
+				if (ps.tickets[i] % 10 == 0)
+				{
+					fprintf(1, "%d - Process: %d\tTickets: %d\tTicks: %d\tUsed: %d\n", i, ps.pid[i], ps.tickets[i], ps.ticks[i], ps.inuse[i]);
+					fprintf(fd, "%d%c", ps.ticks[i], endl);
+				}
+			}
+		}
 
+		sleep(100);
+	}
+
+	for (int i = 0; i < NCHILDS; i++)
+		kill(pids[i]);
+
+	fprintf(1, "Returning from getinfo.c with status 0!\n");
 
 	exit(0);
 }

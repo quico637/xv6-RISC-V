@@ -454,6 +454,8 @@ scheduler(void)
   
   c->proc = 0;
   for(;;){
+
+  reschedule:
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
     int total_tickets = 0;
@@ -479,10 +481,12 @@ scheduler(void)
           p->ticks++; /* ASSUMING 1 CLOCK TICK PER QUANTUM */
           c->proc = p;
           swtch(&c->context, &p->context);
-          
+
           // Process is done running for now.
           // It should have changed its p->state before coming back.
           c->proc = 0;
+          release(&p->lock);
+          goto reschedule;
         }
         random -= p->tickets;
       }

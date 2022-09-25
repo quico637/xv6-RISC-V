@@ -453,9 +453,8 @@ scheduler(void)
   struct cpu *c = mycpu();
   
   c->proc = 0;
+reschedule:
   for(;;){
-
-  reschedule:
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
     int total_tickets = 0;
@@ -463,14 +462,15 @@ scheduler(void)
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
         total_tickets += p->tickets;
-
-
       }
       release(&p->lock);
     }
 
-
-    int random = randomrange(1, total_tickets);
+    uint seed;
+    acquire(&tickslock);
+    seed = ticks;
+    release(&tickslock);
+    int random = randomrange(seed, 1, total_tickets);
 
     for(p = proc; p < &proc[NPROC]; p++) {    
       acquire(&p->lock);
@@ -481,16 +481,15 @@ scheduler(void)
           p->ticks++; /* ASSUMING 1 CLOCK TICK PER QUANTUM */
           c->proc = p;
           swtch(&c->context, &p->context);
-
+          
           // Process is done running for now.
           // It should have changed its p->state before coming back.
           c->proc = 0;
-          release(&p->lock);
-          goto reschedule;
         }
         random -= p->tickets;
       }
       release(&p->lock);
+      if (random <= 0) goto reschedule;
     }
   }
 }

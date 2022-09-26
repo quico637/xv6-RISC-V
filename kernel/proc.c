@@ -472,7 +472,7 @@ scheduler(void)
     }
 
     int seed = ticks;
-    int random = randomrange(1, total_tickets);
+    int random = randomrange(seed, 1, total_tickets);
 
     for(p = proc; p < &proc[NPROC]; p++) {    
       acquire(&p->lock);

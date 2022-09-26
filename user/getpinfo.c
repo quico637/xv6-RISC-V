@@ -4,7 +4,6 @@
 #include "kernel/pstat.h"
 
 #define NCHILDS 3
-// #define NROWS 5
 
 int main(int argc, char *argv[])
 {
@@ -65,6 +64,7 @@ int main(int argc, char *argv[])
 
 		for (int i = 0; i < NPROC; i++)
 		{
+			fprintf(1, "\t-------------------------\n");
 			if (ps.inuse[i])
 			{
 				char endl;
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		sleep(100);
+		sleep(100);		
 	}
 
 	for (int i = 0; i < NCHILDS; i++)

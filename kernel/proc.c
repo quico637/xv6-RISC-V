@@ -455,7 +455,6 @@ scheduler(void)
   c->proc = 0;
   for(;;){
 
-  reschedule:
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
     int total_tickets = 0;
@@ -463,13 +462,16 @@ scheduler(void)
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
         total_tickets += p->tickets;
-
-
       }
       release(&p->lock);
     }
 
+    if(total_tickets < 1)
+    {
+      continue;
+    }
 
+    int seed = ticks;
     int random = randomrange(1, total_tickets);
 
     for(p = proc; p < &proc[NPROC]; p++) {    
@@ -485,8 +487,10 @@ scheduler(void)
           // Process is done running for now.
           // It should have changed its p->state before coming back.
           c->proc = 0;
+
+          /* SOLAMENTE PUEDES VOLVER AQUI CUANDO HAYAS VUELTO DE UN CAMBIO DE CONTEXTO */ 
           release(&p->lock);
-          goto reschedule;
+          break;
         }
         random -= p->tickets;
       }

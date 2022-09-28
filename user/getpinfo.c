@@ -54,6 +54,7 @@ int main(int argc, char *argv[])
 	
 	for (int j = 0; j < NROWS; j++)
 	{
+		fprintf(1, "\t-------------------------\n");
 		struct pstat ps;
 		int ret = getpinfo(&ps);
 		if (ret < 0)
@@ -64,7 +65,6 @@ int main(int argc, char *argv[])
 
 		for (int i = 0; i < NPROC; i++)
 		{
-			fprintf(1, "\t-------------------------\n");
 			if (ps.inuse[i])
 			{
 				char endl;

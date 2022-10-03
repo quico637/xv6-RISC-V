@@ -65,6 +65,12 @@ usertrap(void)
     intr_on();
 
     syscall();
+  } else if (r_scause() == 13 || r_scause() == 15) {
+    // load / store page fault
+
+    // direccion que dio el fallo.
+    uint64 addr = r_stval();
+
   } else if((which_dev = devintr()) != 0){
     // ok
   } else {

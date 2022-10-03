@@ -5,6 +5,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "file.h"
 #include "pstat.h"
 
 uint64
@@ -118,4 +119,53 @@ sys_getpinfo(void)
   //struct pstat * ps = (struct pstat *) &pstat;
 
   return pinfo(pstat);
+}
+
+void
+sys_mmap(void)
+{
+  int length, prot, flags, fd, offset;
+  void * addr;
+  struct file * f;
+  // addr y offset podemos asumir q son 0.
+
+  argaddr(0, addr);
+  argint(1, &length);
+  argint(2, &prot);
+  argint(3, &flags);
+  
+  if(argfd(4, &fd, f) < 0)
+  {
+    addr = 0xFFFFFFFFFFFFFFFF;
+    return;
+  }
+    
+  if(prot << 2 != 0 || prot == 0)
+  {
+    addr = 0xFFFFFFFFFFFFFFFF;
+    return;
+  }
+
+  if(flags != 0x004  && flags != 0x005)
+  {
+    addr = 0xFFFFFFFFFFFFFFFF;
+    return;
+  }
+
+  if(length > f->ip->size ||length < 0)
+  {
+    addr = 0xFFFFFFFFFFFFFFFF;
+    return;
+  }
+
+  addr = myproc()->sz;
+  myproc()->sz += length;
+
+}
+
+
+void
+sys_munmap(void)
+{
+
 }

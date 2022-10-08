@@ -71,6 +71,22 @@ usertrap(void)
     // direccion que dio el fallo.
     uint64 addr = r_stval();
 
+
+    for(int i = 0; i < PER_PROCESS_VMAS; i++)
+    {
+      if(p->vmas[i] == 0)
+        break;
+
+      if (addr > p->vmas[i]->dir && addr < (p->vmas[i]->dir + p->vmas[i]->size))
+      {
+        // leo y cargo la pagina
+      }
+    }
+
+    // fallo
+
+
+
   } else if((which_dev = devintr()) != 0){
     // ok
   } else {

@@ -18,6 +18,16 @@ struct context {
   uint64 s11;
 };
 
+struct vma {
+  int used;
+  struct file* mfile;
+  uint64 dir;
+  int prot;
+  int flags;
+  int size;
+  int offset;
+};
+
 // Per-CPU state.
 struct cpu {
   struct proc *proc;          // The process running on this cpu, or null.
@@ -92,6 +102,9 @@ struct proc {
   int xstate;                  // Exit status to be returned to parent's wait
   int pid;                     // Process ID
 
+  // VMAS
+  struct vma* vmas[PER_PROCESS_VMAS];
+
   // wait_lock must be held when using this:
   struct proc *parent;         // Parent process
 
@@ -108,4 +121,5 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
 };

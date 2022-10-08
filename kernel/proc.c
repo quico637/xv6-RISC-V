@@ -11,6 +11,9 @@ struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
 
+// GLOBAL
+struct vma vmas[NVMAS];
+
 struct proc *initproc;
 
 int nextpid = 1;
@@ -482,6 +485,7 @@ scheduler(void)
           p->state = RUNNING;
           p->ticks++; /* ASSUMING 1 CLOCK TICK PER QUANTUM */
           c->proc = p;
+          
           swtch(&c->context, &p->context);
 
           // Process is done running for now.

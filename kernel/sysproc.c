@@ -5,8 +5,11 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
-#include "file.h"
 #include "pstat.h"
+#include "fs.h"
+#include "sleeplock.h"
+#include "file.h"
+
 
 uint64
 sys_exit(void)
@@ -124,17 +127,21 @@ sys_getpinfo(void)
 void
 sys_mmap(void)
 {
-  int length, prot, flags, fd, offset;
-  void * addr;
+  
+  int length, prot, flags, fd;
+  uint64 addr;
+  
   struct file * f;
+
+
   // addr y offset podemos asumir q son 0.
 
-  argaddr(0, addr);
+  argaddr(0, &addr);
   argint(1, &length);
   argint(2, &prot);
   argint(3, &flags);
   
-  if(argfd(4, &fd, f) < 0)
+  if(argfd(4, &fd, &f) < 0)
   {
     addr = 0xFFFFFFFFFFFFFFFF;
     return;
@@ -152,7 +159,7 @@ sys_mmap(void)
     return;
   }
 
-  if(length > f->ip->size ||length < 0)
+  if(length < 0)
   {
     addr = 0xFFFFFFFFFFFFFFFF;
     return;

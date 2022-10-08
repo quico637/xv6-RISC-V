@@ -136,6 +136,7 @@ UPROGS=\
 	$U/_zombie\
 	$U/_settickets\
 	$U/_getpinfo\
+	$U/_mmaptest\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

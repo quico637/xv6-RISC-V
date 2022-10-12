@@ -6,6 +6,9 @@
 #include "proc.h"
 #include "defs.h"
 #include "pstat.h"
+#include "fs.h"
+#include "sleeplock.h"
+#include "file.h"
 
 struct cpu cpus[NCPU];
 
@@ -756,7 +759,10 @@ allocvma(int length, int prot, int flags, struct file *f, int offset)
           vmas[j].flags = flags;
           vmas[j].size = length;
           vmas[j].offset = 0;
+          vmas[j].mfile->ref++;
           //TODO llevar cuenta de la direccion virtual donde se debe crear el fichero proyectado en memoria
+          p->nmp -= PGROUNDUP(length);
+          vmas[j].addr = p->nmp;
           release(&vmas[j].lock);
           return 0;
         }

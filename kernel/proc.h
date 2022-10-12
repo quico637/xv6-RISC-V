@@ -19,14 +19,14 @@ struct context {
 };
 
 struct vma {
-  struct spinlock lock;
-  int used;
-  struct file* mfile;
-  uint64 dir;
-  int prot;
-  int flags;
-  int size;
-  int offset;
+  struct spinlock lock;     // lock for race conditions
+  int used;                 // boolean field to check if is used
+  struct file* mfile;       // file mapped to process' virtual address space
+  uint64 addr;              // Address were the mapped file begins 
+  int prot;                 // Protections associated to the file
+  int flags;                // Flags associated to the file
+  int size;                 // size of the file. It could not be equal to the file in disk size.
+  int offset;               // We assume it is 0.
 };
 
 // Per-CPU state.
@@ -102,6 +102,8 @@ struct proc {
   int killed;                  // If non-zero, have been killed
   int xstate;                  // Exit status to be returned to parent's wait
   int pid;                     // Process ID
+
+  uint64 nmp;                   // next pointer to VMA
 
   // VMAS
   struct vma* vmas[PER_PROCESS_VMAS];

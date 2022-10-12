@@ -159,14 +159,26 @@ sys_mmap(void)
     return;
   }
 
+  if(f->readable == 0)
+  {
+    addr = 0xFFFFFFFFFFFFFFFF;
+    return;
+  }
+
+  if((flags == 0x004) && (prot == 0x002 || prot == 0x003) && f->writable == 0)
+  {
+    addr = 0xFFFFFFFFFFFFFFFF;
+    return;
+  }
+
   if(length < 0)
   {
     addr = 0xFFFFFFFFFFFFFFFF;
     return;
   }
 
-  addr = myproc()->sz;
-  myproc()->sz += length;
+  addr = allocvma(length, prot, flags, f, 0);
+  return;
 
 }
 

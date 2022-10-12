@@ -19,6 +19,7 @@ struct context {
 };
 
 struct vma {
+  struct spinlock lock;
   int used;
   struct file* mfile;
   uint64 dir;

@@ -47,7 +47,7 @@ proc_mapstacks(pagetable_t kpgtbl)
   }
 }
 
-// initialize the proc table.
+// initialize the proc and VMA table.
 void
 procinit(void)
 {
@@ -59,6 +59,12 @@ procinit(void)
       initlock(&p->lock, "proc");
       p->state = UNUSED;
       p->kstack = KSTACK((int) (p - proc));
+  }
+
+  struct vma *vma;
+  for(vma = vmas; vma < &vmas[NVMAS]; vma++) {
+      initlock(&vma->lock, "vma");
+      vma->used = 0;
   }
 }
 
@@ -731,4 +737,33 @@ pinfo(uint64 ps)
   if(copyout(myproc()->pagetable, ps, (char *)&st, sizeof(st)) < 0)
     return -1;
   return 0;
+}
+
+
+uint64
+allocvma(int length, int prot, int flags, struct file *f, int offset)
+{
+  struct proc *p = myproc();
+  for(int i = 0; i < PER_PROCESS_VMAS; i++) {
+    if(!p->vmas[i]) {
+      for(int j = 0; j < NVMAS; j++) {
+        acquire(&vmas[j].lock);
+        if(!vmas[j].used) {
+          p->vmas[i] = &vmas[j];
+          vmas[j].used = 1;
+          vmas[j].mfile = f;
+          vmas[j].prot = prot;
+          vmas[j].flags = flags;
+          vmas[j].size = length;
+          vmas[j].offset = 0;
+          //TODO llevar cuenta de la direccion virtual donde se debe crear el fichero proyectado en memoria
+          release(&vmas[j].lock);
+          return 0;
+        }
+        release(&vmas[j].lock);
+      }
+      return 0xFFFFFFFFFFFFFFFF;
+    }
+  }
+  return 0xFFFFFFFFFFFFFFFF;
 }

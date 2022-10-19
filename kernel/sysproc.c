@@ -1,6 +1,7 @@
 #include "types.h"
 #include "riscv.h"
 #include "defs.h"
+#include "fcntl.h"
 #include "param.h"
 #include "memlayout.h"
 #include "spinlock.h"
@@ -124,7 +125,7 @@ sys_getpinfo(void)
   return pinfo(pstat);
 }
 
-void
+void *
 sys_mmap(void)
 {
   
@@ -143,42 +144,42 @@ sys_mmap(void)
   
   if(argfd(4, &fd, &f) < 0)
   {
-    addr = 0xFFFFFFFFFFFFFFFF;
-    return;
+    addr = (uint64) MAP_FAILED;
+    return (void *) MAP_FAILED;
   }
     
-  if(prot << 2 != 0 || prot == 0)
+  if(prot != PROT_READ && prot != PROT_WRITE && prot != (PROT_READ | PROT_WRITE))
   {
-    addr = 0xFFFFFFFFFFFFFFFF;
-    return;
+    addr = (uint64) MAP_FAILED;
+    return (void *) MAP_FAILED;
   }
 
-  if(flags != 0x004  && flags != 0x005)
+  if(flags != MAP_SHARED  && flags != MAP_PRIVATE)
   {
-    addr = 0xFFFFFFFFFFFFFFFF;
-    return;
+    addr = (uint64) MAP_FAILED;
+    return (void *) MAP_FAILED;
   }
 
   if(f->readable == 0)
   {
-    addr = 0xFFFFFFFFFFFFFFFF;
-    return;
+    addr = (uint64) MAP_FAILED;
+    return (void *) MAP_FAILED;
   }
 
-  if((flags == 0x004) && (prot == 0x002 || prot == 0x003) && f->writable == 0)
+  if((flags == MAP_SHARED) && (prot == PROT_READ || prot == PROT_WRITE) && f->writable == 0)
   {
-    addr = 0xFFFFFFFFFFFFFFFF;
-    return;
+    addr = (uint64) MAP_FAILED;
+    return (void *) MAP_FAILED;
   }
 
   if(length < 0)
   {
-    addr = 0xFFFFFFFFFFFFFFFF;
-    return;
+    addr = (uint64) MAP_FAILED;
+    return (void *) MAP_FAILED;
   }
 
   addr = allocvma(length, prot, flags, f, 0);
-  return;
+  return (void *) addr;
 
 }
 

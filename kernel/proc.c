@@ -1,5 +1,6 @@
 #include "types.h"
 #include "param.h"
+#include "fcntl.h"
 #include "memlayout.h"
 #include "riscv.h"
 #include "spinlock.h"
@@ -9,6 +10,7 @@
 #include "fs.h"
 #include "sleeplock.h"
 #include "file.h"
+
 
 struct cpu cpus[NCPU];
 
@@ -764,12 +766,12 @@ allocvma(int length, int prot, int flags, struct file *f, int offset)
           p->nmp -= PGROUNDUP(length);
           vmas[j].addr = p->nmp;
           release(&vmas[j].lock);
-          return 0;
+          return vmas[j].addr;
         }
         release(&vmas[j].lock);
       }
-      return 0xFFFFFFFFFFFFFFFF;
+      return (uint64) MAP_FAILED;
     }
   }
-  return 0xFFFFFFFFFFFFFFFF;
+  return (uint64) MAP_FAILED;
 }

@@ -79,6 +79,8 @@ void usertrap(void)
       if (p->vmas[i] == 0)
         continue;
 
+      printf("TONTO EL Q LO LEA\n");
+
       if (addr >= p->vmas[i]->addr && addr < (p->vmas[i]->addr + p->vmas[i]->size))
       {
         // leo y cargo la pagina
@@ -94,28 +96,24 @@ void usertrap(void)
         // para que no vea cosas de procesos anteriores.
         memset(phy_addr, 0, PGSIZE);
 
+        int r;
+        struct file *f = p->vmas[i]->mfile;
+        ilock(f->ip);
+        if ((r = readi(f->ip, 0, (uint64) phy_addr, p->vmas[i]->offset + PGROUNDDOWN(addr - p->vmas[i]->addr), PGSIZE)) > 0)
+        {
+          p->vmas[i]->offset += r;
+        }
+        iunlock(f->ip);
+
+        memset(phy_addr, 7, PGSIZE);
+
         if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)phy_addr, PTE_W | PTE_U) < 0)
         {
           kfree(phy_addr);
           printf("usertrap(): Could not map physical to virtual address. pid=%d\n", p->pid);
           setkilled(p);
         }
-
-        char buf[PGSIZE];
-
-        int r;
-        struct file *f = p->vmas[i]->mfile;
-        ilock(f->ip);
-        if ((r = readi(f->ip, 1, (uint64) buf, p->vmas[i]->offset, PGSIZE)) > 0)
-        {
-          p->vmas[i]->offset += r;
-          if (copyout(p->pagetable, PGROUNDDOWN(addr), buf, PGSIZE) < 0)
-          {
-            printf("usertrap(): Could not map physical to virtual address. pid=%d\n", p->pid);
-            setkilled(p);
-          }
-        }
-        iunlock(f->ip);
+        return;
       }
     }
 
@@ -150,7 +148,6 @@ void usertrap(void)
 void usertrapret(void)
 {
   struct proc *p = myproc();
-
   // we're about to switch the destination of traps from
   // kerneltrap() to usertrap(), so turn off interrupts until
   // we're back in user space, where usertrap() is correct.
@@ -197,11 +194,71 @@ void kerneltrap()
   uint64 sepc = r_sepc();
   uint64 sstatus = r_sstatus();
   uint64 scause = r_scause();
+  struct proc *p = myproc();
+  
+
 
   if ((sstatus & SSTATUS_SPP) == 0)
     panic("kerneltrap: not from supervisor mode");
   if (intr_get() != 0)
     panic("kerneltrap: interrupts enabled");
+
+
+  if (r_scause() == 13 || r_scause() == 15)
+  {
+    // load / store page fault
+
+    // direccion que dio el fallo.
+    uint64 addr = r_stval();
+
+    for (int i = 0; i < PER_PROCESS_VMAS; i++)
+    {
+      if (p->vmas[i] == 0)
+        continue;
+
+      printf("TONTO EL Q LO LEA\n");
+
+      if (addr >= p->vmas[i]->addr && addr < (p->vmas[i]->addr + p->vmas[i]->size))
+      {
+        // leo y cargo la pagina
+
+        // coger un MP fisico
+        char *phy_addr = kalloc();
+        if (phy_addr == 0)
+        {
+          printf("usertrap(): No physical pages available. pid=%d\n", p->pid);
+          setkilled(p);
+        }
+
+        // para que no vea cosas de procesos anteriores.
+        memset(phy_addr, 0, PGSIZE);
+
+        int r;
+        struct file *f = p->vmas[i]->mfile;
+        ilock(f->ip);
+        if ((r = readi(f->ip, 0, (uint64) phy_addr, p->vmas[i]->offset + PGROUNDDOWN(addr - p->vmas[i]->addr), PGSIZE)) > 0)
+        {
+          p->vmas[i]->offset += r;
+        }
+        iunlock(f->ip);
+
+        memset(phy_addr, 7, PGSIZE);
+
+        if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)phy_addr, PTE_W | PTE_U) < 0)
+        {
+          kfree(phy_addr);
+          printf("usertrap(): Could not map physical to virtual address. pid=%d\n", p->pid);
+          setkilled(p);
+        }
+        return;
+      }
+    }
+
+    // fallo
+    printf("usertrap(): Wrong memory address. Not your business. pid=%d\n", p->pid);
+    setkilled(p);
+  }
+
 
   if ((which_dev = devintr()) == 0)
   {
@@ -209,7 +266,6 @@ void kerneltrap()
     printf("sepc=%p stval=%p\n", r_sepc(), r_stval());
     panic("kerneltrap");
   }
-
   // give up the CPU if this is a timer interrupt.
   if (which_dev == 2 && myproc() != 0 && myproc()->state == RUNNING)
     yield();

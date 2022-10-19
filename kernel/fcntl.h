@@ -13,3 +13,7 @@
 #define PROT_WRITE      0x002
 #define MAP_SHARED      0x004
 #define MAP_PRIVATE     0x005
+
+// define ret val
+
+#define MAP_FAILED ((char *) -1)

@@ -96,31 +96,22 @@ void usertrap(void)
         // para que no vea cosas de procesos anteriores.
         memset(phy_addr, 0, PGSIZE);
 
+	if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64) phy_addr, PTE_R | PTE_W | PTE_U ) < 0)
+	{
+	  kfree(phy_addr);
+	  printf("usertrap(): Could not map physical to virtual address. pid=%d\n", p->pid);
+	  setkilled(p);
+	}
+	
         int r;
         struct file *f = p->vmas[i]->mfile;
         ilock(f->ip);
-        if ((r = readi(f->ip, 0, (uint64) phy_addr, p->vmas[i]->offset + PGROUNDDOWN(addr - p->vmas[i]->addr), PGSIZE)) > 0)
+        if ((r = readi(f->ip, 1, addr, p->vmas[i]->offset + PGROUNDDOWN(addr - p->vmas[i]->addr), PGSIZE)) > 0)
         {
           p->vmas[i]->offset += r;
         }
         iunlock(f->ip);
 
-        // memset(phy_addr, 7, PGSIZE);
-        if((uvmalloc(p->pagetable, PGROUNDDOWN(addr), PGROUNDDOWN(addr) + PGSIZE, PTE_W | PTE_R)) == 0)
-        {
-          kfree(phy_addr);
-          printf("usertrap(): uvmalloc\n");
-          setkilled(p);
-        }
-
-
-    
-        // if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)phy_addr, PTE_W | PTE_R) < 0)
-        // {
-        //   kfree(phy_addr);
-        //   printf("usertrap(): Could not map physical to virtual address. pid=%d\n", p->pid);
-        //   setkilled(p);
-        // }
         return;
       }
     }

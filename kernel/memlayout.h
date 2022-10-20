@@ -66,4 +66,5 @@
 //   TRAMPOLINE (the same page as in the kernel)
 #define TRAPFRAME (TRAMPOLINE - PGSIZE)
 
-#define UNUSED_ZONE (TRAPFRAME - PGSIZE)
+// USER
+// #define UNUSED_ZONE TRAPFRAME

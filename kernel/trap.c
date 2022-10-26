@@ -8,6 +8,7 @@
 #include "fs.h"
 #include "sleeplock.h"
 #include "file.h"
+#include "fcntl.h"
 
 struct spinlock tickslock;
 uint ticks;
@@ -73,8 +74,9 @@ void usertrap(void)
 
     // direccion que dio el fallo.
     uint64 addr = r_stval();
+    int solved = 0;
 
-    for (int i = 0; i < PER_PROCESS_VMAS; i++)
+    for (int i = 0; i < PER_PROCESS_VMAS && !solved; i++)
     {
       if (p->vmas[i] == 0)
         continue;
@@ -95,13 +97,6 @@ void usertrap(void)
 
         // para que no vea cosas de procesos anteriores.
         memset(phy_addr, 0, PGSIZE);
-
-	// if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64) phy_addr, PTE_R | PTE_W | PTE_U ) < 0)
-	// {
-	//  kfree(phy_addr);
-	//  printf("usertrap(): Could not map physical to virtual address. pid=%d\n", p->pid);
-	//  setkilled(p);
-	// }
 	
         int r;
         struct file *f = p->vmas[i]->mfile;
@@ -112,20 +107,39 @@ void usertrap(void)
         }
         iunlock(f->ip);
 
-	if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64) phy_addr, PTE_R | PTE_W | PTE_U) < 0)
+	int prot;
+	switch(p->vmas[i]->prot)
+	{
+	case(PROT_READ):
+	  prot = PTE_R;
+	  break;
+	case(PROT_WRITE):
+	  prot = PTE_W;
+	  break;
+	case(PROT_RW):
+	  prot = PTE_R | PTE_W;
+	  break;
+	default:
+	  prot = 0;
+	}
+
+	if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64) phy_addr, prot | PTE_U) < 0)
 	{
 	  kfree(phy_addr);
 	  printf("usertrap(): Could not map physical to virtual address, pid=%d\n", p->pid);
 	  setkilled(p);
 	}
 
-        return;
+        solved = 1;
       }
     }
 
     // fallo
-    printf("usertrap(): Wrong memory address. Not your business. pid=%d\n", p->pid);
-    setkilled(p);
+    if (!solved)
+    {
+      printf("usertrap(): Wrong memory address. Not your business. pid=%d\n", p->pid);
+      setkilled(p);
+    }
   }
   else if ((which_dev = devintr()) != 0)
   {

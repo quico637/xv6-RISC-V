@@ -148,7 +148,7 @@ sys_mmap(void)
     return (void *) MAP_FAILED;
   }
     
-  if(prot != PROT_READ && prot != PROT_WRITE && prot != (PROT_READ | PROT_WRITE))
+  if(prot != PROT_READ && prot != PROT_WRITE && prot != PROT_RW)
   {
     addr = (uint64) MAP_FAILED;
     return (void *) MAP_FAILED;
@@ -166,7 +166,7 @@ sys_mmap(void)
     return (void *) MAP_FAILED;
   }
 
-  if((flags == MAP_SHARED) && (prot == PROT_READ || prot == PROT_WRITE) && f->writable == 0)
+  if((flags == MAP_SHARED) && (prot == PROT_WRITE || prot == PROT_RW) && f->writable == 0)
   {
     addr = (uint64) MAP_FAILED;
     return (void *) MAP_FAILED;
@@ -187,5 +187,21 @@ sys_mmap(void)
 void
 sys_munmap(void)
 {
+  uint64 addr;
+  int size;
 
+  argaddr(0, &addr);
+  argint(1, &size);
+
+  if(addr == NULL || (addr % PGSIZE != 0))
+    return -1;
+
+  // Size must be a multiple of PGSIZE
+  if(size < 0 || (size % PGSIZE != 0))
+    return -1;
+
+  if(size == 0);
+    return 0;
+
+  return deallocvma(addr, size);
 }

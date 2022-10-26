@@ -9,8 +9,9 @@
 
 // FLAGS DEFINED TO MAP A FILE INTO CURRENT PROCESS VIRTUAL ADDRESSES
 
-#define PROT_READ       0x001 
+#define PROT_READ       0x001
 #define PROT_WRITE      0x002
+#define PROT_RW		0x003
 #define MAP_SHARED      0x004
 #define MAP_PRIVATE     0x005
 

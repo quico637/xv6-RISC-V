@@ -774,3 +774,23 @@ allocvma(int length, int prot, int flags, struct file *f, int offset)
   }
   return (uint64) MAP_FAILED;
 }
+
+int
+deallocvma(uint64 addr, int size)
+{
+  struct proc *p = myproc();
+  for(int i = 0; i < PER_PROCESS_VMAS; i++)
+  {
+    if(p->vmas[i] && p->vmas[i]->used && (addr >= p->vmas[i]->addr) && (addr < p->vmas[i]->addr + p->vmas[i]->length))
+    {
+      // Unmap complete VMA
+      if(addr == p->vmas[i]->addr && size == p->vmas[i]->length)
+      {
+      }
+      // Unmap first part of VMA
+      else if(addr == p->vmas[i]->addr && size < p->vmas[i]->length)
+      {
+      }
+    }
+  }
+}

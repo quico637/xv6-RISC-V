@@ -797,7 +797,6 @@ deallocvma(uint64 addr, int size)
       {
         p->vmas[i]->addr += size;
         p->vmas[i]->size -= size;
-        p->vmas[i]->offset += size;
       }
       // Unmap last part of the VMA
       else if(addr > p->vmas[i]->addr && (addr + size == p->vmas[i]->addr + p->vmas[i]->size))
@@ -826,7 +825,7 @@ deallocvma(uint64 addr, int size)
           int w = 0;
 	  while(w < PGSIZE)
           {
-            int r = writei(p->vmas[i]->mfile->ip, 1, addr + j, p->vmas[i]->offset + j, n1);
+            int r = writei(p->vmas[i]->mfile->ip, 1, addr + j, p->vmas[i]->offset + j + w, n1);
             w += r;
             n1 = PGSIZE - w;
             if(n1 > max)
@@ -845,7 +844,10 @@ deallocvma(uint64 addr, int size)
           uvmunmap(p->pagetable, addr + j*PGSIZE, 1, 1);
         }
       }
-      // TODO volver a recalcular p->nmp
+      if(addr == p->vmas[i]->addr && size < p->vmas[i]->size)
+      {
+        p->vmas[i]->offset += size;
+      }
       if(clear_vma)
         p->vmas[i] = 0;
       uint64 min_vma = TRAPFRAME;

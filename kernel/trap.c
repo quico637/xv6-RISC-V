@@ -98,10 +98,9 @@ void usertrap(void)
         // para que no vea cosas de procesos anteriores.
         memset(phy_addr, 0, PGSIZE);
 	
-        int r;
         struct file *f = p->vmas[i]->mfile;
         ilock(f->ip);
-        r = readi(f->ip, 0, (uint64) phy_addr, PGROUNDDOWN(addr - p->vmas[i]->addr), PGSIZE);s
+        readi(f->ip, 0, (uint64) phy_addr, PGROUNDDOWN(addr - p->vmas[i]->addr), PGSIZE);
         iunlock(f->ip);
 
 	int prot;

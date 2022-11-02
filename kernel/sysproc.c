@@ -184,7 +184,7 @@ sys_mmap(void)
 }
 
 
-void
+int
 sys_munmap(void)
 {
   uint64 addr;
@@ -193,14 +193,14 @@ sys_munmap(void)
   argaddr(0, &addr);
   argint(1, &size);
 
-  if(addr == NULL || (addr % PGSIZE != 0))
+  if(addr <= 0 || (addr % PGSIZE != 0))
     return -1;
 
   // Size must be a multiple of PGSIZE
   if(size < 0 || (size % PGSIZE != 0))
     return -1;
 
-  if(size == 0);
+  if(size == 0)
     return 0;
 
   return deallocvma(addr, size);

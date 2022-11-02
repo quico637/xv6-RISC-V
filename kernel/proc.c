@@ -781,16 +781,83 @@ deallocvma(uint64 addr, int size)
   struct proc *p = myproc();
   for(int i = 0; i < PER_PROCESS_VMAS; i++)
   {
-    if(p->vmas[i] && p->vmas[i]->used && (addr >= p->vmas[i]->addr) && (addr < p->vmas[i]->addr + p->vmas[i]->length))
+    if(p->vmas[i] && p->vmas[i]->used && (addr >= p->vmas[i]->addr) && (addr < p->vmas[i]->addr + p->vmas[i]->size))
     {
       // Unmap complete VMA
-      if(addr == p->vmas[i]->addr && size == p->vmas[i]->length)
+      int clear_vma = 0;
+      if(addr == p->vmas[i]->addr && size == p->vmas[i]->size)
       {
+        p->vmas[i]->used = 0;
+        // TODO hay que ver las referencias al fichero, cuando se debe cerrar...
+        p->vmas[i]->mfile->ref--;
+        clear_vma = 1;
       }
       // Unmap first part of VMA
-      else if(addr == p->vmas[i]->addr && size < p->vmas[i]->length)
+      else if(addr == p->vmas[i]->addr && size < p->vmas[i]->size)
       {
+        p->vmas[i]->addr += size;
+        p->vmas[i]->size -= size;
       }
+      // Unmap last part of the VMA
+      else if(addr > p->vmas[i]->addr && (addr + size == p->vmas[i]->addr + p->vmas[i]->size))
+      {
+        p->vmas[i]->size -= size;
+        p->vmas[i]->offset += size;
+      }
+      else return -1;
+      if(p->vmas[i]->flags == MAP_SHARED)
+      {
+        int max = ((MAXOPBLOCKS-1-1-2) / 2) * BSIZE;
+        int j = 0;
+        while(j < size)
+        {
+          int n1 = size - j;
+          if(n1 > max)
+            n1 = max;
+
+          if(!(walkaddr(p->pagetable, addr + j)))
+          {
+            j += PGSIZE;
+            continue;
+          }
+
+          begin_op();
+          ilock(p->vmas[i]->mfile->ip);
+          int w = 0;
+	  while(w < PGSIZE)
+          {
+            int r = writei(p->vmas[i]->mfile->ip, 1, addr + j, p->vmas[i]->offset + j, n1);
+            w += r;
+            n1 = PGSIZE - w;
+            if(n1 > max)
+              n1 = max;
+          }
+          uvmunmap(p->pagetable, addr + j, 1, 1);
+          iunlock(p->vmas[i]->mfile->ip);
+          end_op();
+          j += w;
+        }
+      }
+      else
+      {
+        for(int j = 0; j < size/PGSIZE; j++)
+        {
+          uvmunmap(p->pagetable, addr + j*PGSIZE, 1, 1);
+        }
+      }
+      // TODO volver a recalcular p->nmp
+      if(clear_vma)
+        p->vmas[i] = 0;
+      uint64 min_vma = TRAPFRAME;
+      for(int v = 0; v < PER_PROCESS_VMAS; v++)
+      {
+        if(p->vmas[v] && p->vmas[v]->addr < min_vma)
+          min_vma = p->vmas[v]->addr;
+      }
+      p->nmp = min_vma;
+      return 0;
     }
   }
+  return -1;
 }
+

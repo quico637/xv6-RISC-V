@@ -797,12 +797,12 @@ deallocvma(uint64 addr, int size)
       {
         p->vmas[i]->addr += size;
         p->vmas[i]->size -= size;
+        p->vmas[i]->offset += size;
       }
       // Unmap last part of the VMA
       else if(addr > p->vmas[i]->addr && (addr + size == p->vmas[i]->addr + p->vmas[i]->size))
       {
         p->vmas[i]->size -= size;
-        p->vmas[i]->offset += size;
       }
       else return -1;
       if(p->vmas[i]->flags == MAP_SHARED)

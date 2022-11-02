@@ -101,7 +101,7 @@ void usertrap(void)
         int r;
         struct file *f = p->vmas[i]->mfile;
         ilock(f->ip);
-        r = readi(f->ip, 0, (uint64) phy_addr, PGROUNDDOWN(addr - p->vmas[i]->addr), PGSIZE)
+        r = readi(f->ip, 0, (uint64) phy_addr, PGROUNDDOWN(addr - p->vmas[i]->addr), PGSIZE);s
         iunlock(f->ip);
 
 	int prot;

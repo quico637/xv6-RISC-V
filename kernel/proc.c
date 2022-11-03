@@ -385,6 +385,13 @@ void exit(int status)
     }
   }
 
+  // dealloc all VMAS
+  for(int i = 0; i < PER_PROCESS_VMAS; i++)
+  {
+    if(p->vmas[i])
+      deallocvma(p->vmas[i]->addr, p->vmas[i]->size);
+  }
+
   begin_op();
   iput(p->cwd);
   end_op();

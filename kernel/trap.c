@@ -97,34 +97,38 @@ void usertrap(void)
 
         // para que no vea cosas de procesos anteriores.
         memset(phy_addr, 0, PGSIZE);
-	
+
         struct file *f = p->vmas[i]->mfile;
         ilock(f->ip);
-        readi(f->ip, 0, (uint64) phy_addr, PGROUNDDOWN(addr - p->vmas[i]->addr), PGSIZE);
+        if (readi(f->ip, 0, (uint64)phy_addr, PGROUNDDOWN(addr - p->vmas[i]->addr), PGSIZE) < 0)
+        {
+          printf("readi(): failed. pid=%d\n", p->pid);
+          setkilled(p);
+        }
         iunlock(f->ip);
 
-	int prot;
-	switch(p->vmas[i]->prot)
-	{
-	case(PROT_READ):
-	  prot = PTE_R;
-	  break;
-	case(PROT_WRITE):
-	  prot = PTE_W;
-	  break;
-	case(PROT_RW):
-	  prot = PTE_R | PTE_W;
-	  break;
-	default:
-	  prot = 0;
-	}
+        int prot;
+        switch (p->vmas[i]->prot)
+        {
+        case (PROT_READ):
+          prot = PTE_R;
+          break;
+        case (PROT_WRITE):
+          prot = PTE_W;
+          break;
+        case (PROT_RW):
+          prot = PTE_R | PTE_W;
+          break;
+        default:
+          prot = 0;
+        }
 
-	if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64) phy_addr, prot | PTE_U) < 0)
-	{
-	  kfree(phy_addr);
-	  printf("usertrap(): Could not map physical to virtual address, pid=%d\n", p->pid);
-	  setkilled(p);
-	}
+        if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)phy_addr, prot | PTE_U) < 0)
+        {
+          kfree(phy_addr);
+          printf("usertrap(): Could not map physical to virtual address, pid=%d\n", p->pid);
+          setkilled(p);
+        }
 
         solved = 1;
       }
@@ -211,14 +215,11 @@ void kerneltrap()
   uint64 sstatus = r_sstatus();
   uint64 scause = r_scause();
   // struct proc *p = myproc();
-  
-
 
   if ((sstatus & SSTATUS_SPP) == 0)
     panic("kerneltrap: not from supervisor mode");
   if (intr_get() != 0)
     panic("kerneltrap: interrupts enabled");
-
 
   // if (r_scause() == 13 || r_scause() == 15)
   // {
@@ -274,7 +275,6 @@ void kerneltrap()
   //   printf("usertrap(): Wrong memory address. Not your business. pid=%d\n", p->pid);
   //   setkilled(p);
   // }
-
 
   if ((which_dev = devintr()) == 0)
   {

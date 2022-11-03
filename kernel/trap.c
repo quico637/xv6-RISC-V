@@ -123,7 +123,9 @@ void usertrap(void)
           prot = 0;
         }
 
-        if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)phy_addr, prot | PTE_U) < 0)
+
+
+        if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)phy_addr, prot | PTE_U | PTE_D) < 0)
         {
           kfree(phy_addr);
           printf("usertrap(): Could not map physical to virtual address, pid=%d\n", p->pid);

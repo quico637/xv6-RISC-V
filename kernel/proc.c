@@ -808,8 +808,11 @@ int deallocvma(uint64 addr, int size)
       if (addr == p->vmas[i]->addr && size == p->vmas[i]->size)
       {
         p->vmas[i]->used = 0;
-        // TODO hay que ver las referencias al fichero, cuando se debe cerrar...
-        p->vmas[i]->mfile->ref--;
+        // fileclose cierra la ultima referencia del fichero correctamente
+        if (p->vmas[i]->mfile->ref == 1)
+          fileclose(p->vmas[i]->mfile);
+        else
+          p->vmas[i]->mfile->ref--;
         clear_vma = 1;
       }
       // Unmap first part of VMA
@@ -844,13 +847,17 @@ int deallocvma(uint64 addr, int size)
           begin_op();
           ilock(p->vmas[i]->mfile->ip);
           int w = 0;
-          while (w < PGSIZE)
+          pte_t * pte = walk(p->pagetable, addr + j, 0);
+          if ((*pte & PTE_D))
           {
-            int r = writei(p->vmas[i]->mfile->ip, 1, addr + j, p->vmas[i]->offset + j + w, n1);
-            w += r;
-            n1 = PGSIZE - w;
-            if (n1 > max)
-              n1 = max;
+            while (w < PGSIZE)
+            {
+              int r = writei(p->vmas[i]->mfile->ip, 1, addr + j, p->vmas[i]->offset + j + w, n1);
+              w += r;
+              n1 = PGSIZE - w;
+              if (n1 > max)
+                n1 = max;
+            }
           }
           uvmunmap(p->pagetable, addr + j, 1, 1);
           iunlock(p->vmas[i]->mfile->ip);

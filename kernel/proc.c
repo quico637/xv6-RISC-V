@@ -317,6 +317,8 @@ int fork(void)
     return -1;
   }
   np->sz = p->sz;
+
+  // child process inherits tickets from father
   np->tickets = p->tickets;
 
   // copy saved user registers.
@@ -335,6 +337,33 @@ int fork(void)
 
   pid = np->pid;
 
+
+
+  // child process inherits father's VMAs
+  for (i = 0; i < PER_PROCESS_VMAS; i++)
+  {
+    if (p->vmas[i])
+    {
+      for (int j = 0; j < NVMAS; j++)
+      {
+        acquire(&vmas[j].lock);
+        if (!vmas[j].used)
+        {
+          np->vmas[i] = &vmas[j];
+          vmas[j].used = 1;
+          vmas[j].mfile = p->vmas[i]->mfile;
+          vmas[j].prot = p->vmas[i]->prot;
+          vmas[j].flags = p->vmas[i]->flags;
+          vmas[j].size = p->vmas[i]->size;
+          vmas[j].offset = p->vmas[i]->offset;
+          vmas[j].mfile->ref++;
+          np->nmp -= PGROUNDUP(p->vmas[i]->size);
+          vmas[j].addr = p->vmas[i]->addr;
+        }
+        release(&vmas[j].lock);
+      }
+    }
+  }
   release(&np->lock);
 
   acquire(&wait_lock);
@@ -386,9 +415,9 @@ void exit(int status)
   }
 
   // dealloc all VMAS
-  for(int i = 0; i < PER_PROCESS_VMAS; i++)
+  for (int i = 0; i < PER_PROCESS_VMAS; i++)
   {
-    if(p->vmas[i])
+    if (p->vmas[i])
       deallocvma(p->vmas[i]->addr, p->vmas[i]->size);
   }
 
@@ -854,7 +883,7 @@ int deallocvma(uint64 addr, int size)
           begin_op();
           ilock(p->vmas[i]->mfile->ip);
           int w = 0;
-          pte_t * pte = walk(p->pagetable, addr + j, 0);
+          pte_t *pte = walk(p->pagetable, addr + j, 0);
           if ((*pte & PTE_D))
           {
             while (w < PGSIZE)

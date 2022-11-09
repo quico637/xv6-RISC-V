@@ -178,7 +178,7 @@ sys_mmap(void)
     return (void *) MAP_FAILED;
   }
 
-  addr = allocvma(length, prot, flags, f, 0);
+  addr = allocvma(length, prot, flags, f, fd, 0);
   return (void *) addr;
 
 }

@@ -142,6 +142,8 @@ found:
   p->pid = allocpid();
   p->state = USED;
 
+  p->nmp = TRAPFRAME;
+
   // Allocate a trapframe page.
   if ((p->trapframe = (struct trapframe *)kalloc()) == 0)
   {
@@ -355,10 +357,12 @@ int fork(void)
           vmas[j].prot = p->vmas[i]->prot;
           vmas[j].flags = p->vmas[i]->flags;
           vmas[j].size = p->vmas[i]->size;
-          vmas[j].offset = p->vmas[i]->offset;
+          vmas[j].offset = 0;
           vmas[j].mfile->ref++;
-          np->nmp -= PGROUNDUP(p->vmas[i]->size);
-          vmas[j].addr = p->vmas[i]->addr;
+          np->nmp -= PGROUNDUP(vmas[j].size);
+          vmas[j].addr = np->nmp;
+          release(&vmas[j].lock);
+          break;
         }
         release(&vmas[j].lock);
       }
@@ -799,7 +803,7 @@ int pinfo(uint64 ps)
 }
 
 uint64
-allocvma(int length, int prot, int flags, struct file *f, int offset)
+allocvma(int length, int prot, int flags, struct file *f, int fd, int offset)
 {
   struct proc *p = myproc();
   for (int i = 0; i < PER_PROCESS_VMAS; i++)
@@ -818,6 +822,7 @@ allocvma(int length, int prot, int flags, struct file *f, int offset)
           vmas[j].flags = flags;
           vmas[j].size = length;
           vmas[j].offset = 0;
+          vmas[j].fd = fd;
           vmas[j].mfile->ref++;
           p->nmp -= PGROUNDUP(length);
           vmas[j].addr = p->nmp;
@@ -841,12 +846,16 @@ int deallocvma(uint64 addr, int size)
     {
       // Unmap complete VMA
       int clear_vma = 0;
+      int new_offset = p->vmas[i]->offset;
       if (addr == p->vmas[i]->addr && size == p->vmas[i]->size)
       {
         p->vmas[i]->used = 0;
         // fileclose cierra la ultima referencia del fichero correctamente
         if (p->vmas[i]->mfile->ref == 1)
+        {
           fileclose(p->vmas[i]->mfile);
+          p->ofile[p->vmas[i]->fd] = 0;
+        }
         else
           p->vmas[i]->mfile->ref--;
         clear_vma = 1;
@@ -856,6 +865,7 @@ int deallocvma(uint64 addr, int size)
       {
         p->vmas[i]->addr += size;
         p->vmas[i]->size -= size;
+        new_offset = p->vmas[i]->offset + size;
       }
       // Unmap last part of the VMA
       else if (addr > p->vmas[i]->addr && (addr + size == p->vmas[i]->addr + p->vmas[i]->size))
@@ -888,7 +898,7 @@ int deallocvma(uint64 addr, int size)
           {
             while (w < PGSIZE)
             {
-              int r = writei(p->vmas[i]->mfile->ip, 1, addr + j, p->vmas[i]->offset + j + w, n1);
+              int r = writei(p->vmas[i]->mfile->ip, 1, addr + j + w, p->vmas[i]->offset + j + w, n1);
               w += r;
               n1 = PGSIZE - w;
               if (n1 > max)
@@ -908,10 +918,8 @@ int deallocvma(uint64 addr, int size)
           uvmunmap(p->pagetable, addr + j * PGSIZE, 1, 1);
         }
       }
-      if (addr == p->vmas[i]->addr && size < p->vmas[i]->size)
-      {
-        p->vmas[i]->offset += size;
-      }
+      p->vmas[i]->offset = new_offset;
+
       if (clear_vma)
         p->vmas[i] = 0;
       uint64 min_vma = TRAPFRAME;

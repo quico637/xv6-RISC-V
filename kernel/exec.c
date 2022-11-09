@@ -78,7 +78,7 @@ exec(char *path, char **argv)
   p->ticks = 0;
 
   uint64 oldsz = p->sz;
-  p->nmp = TRAPFRAME;
+  // p->nmp = TRAPFRAME;
 
   // Allocate two pages at the next page boundary.
   // Make the first inaccessible as a stack guard.

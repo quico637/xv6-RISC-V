@@ -22,6 +22,7 @@ struct vma {
   struct spinlock lock;     // lock for race conditions
   int used;                 // boolean field to check if is used
   struct file* mfile;       // file mapped to process' virtual address space
+  int fd;                   // file descriptor
   uint64 addr;              // Address were the mapped file begins 
   int prot;                 // Protections associated to the file
   int flags;                // Flags associated to the file

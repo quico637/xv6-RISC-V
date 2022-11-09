@@ -846,18 +846,13 @@ int deallocvma(uint64 addr, int size)
     {
       // Unmap complete VMA
       int clear_vma = 0;
+      int complete = 0;
       int new_offset = p->vmas[i]->offset;
       if (addr == p->vmas[i]->addr && size == p->vmas[i]->size)
       {
         p->vmas[i]->used = 0;
         // fileclose cierra la ultima referencia del fichero correctamente
-        if (p->vmas[i]->mfile->ref == 1)
-        {
-          fileclose(p->vmas[i]->mfile);
-          p->ofile[p->vmas[i]->fd] = 0;
-        }
-        else
-          p->vmas[i]->mfile->ref--;
+        complete = 1;
         clear_vma = 1;
       }
       // Unmap first part of VMA
@@ -920,8 +915,23 @@ int deallocvma(uint64 addr, int size)
       }
       p->vmas[i]->offset = new_offset;
 
+      if(complete)
+      {
+        if (p->vmas[i]->mfile->ref == 1)
+        {
+          fileclose(p->vmas[i]->mfile);
+          p->ofile[p->vmas[i]->fd] = 0;
+        }
+        else
+          p->vmas[i]->mfile->ref--;
+      }
+
+
       if (clear_vma)
         p->vmas[i] = 0;
+
+
+
       uint64 min_vma = TRAPFRAME;
       for (int v = 0; v < PER_PROCESS_VMAS; v++)
       {

@@ -357,7 +357,7 @@ int fork(void)
           vmas[j].prot = p->vmas[i]->prot;
           vmas[j].flags = p->vmas[i]->flags;
           vmas[j].size = p->vmas[i]->size;
-          vmas[j].offset = 0;
+          vmas[j].offset = p->vmas[i]->offset;
           vmas[j].mfile->ref++;
           np->nmp -= PGROUNDUP(vmas[j].size);
           vmas[j].addr = np->nmp;
@@ -845,7 +845,6 @@ int deallocvma(uint64 addr, int size)
     if (p->vmas[i] && p->vmas[i]->used && (addr >= p->vmas[i]->addr) && (addr < p->vmas[i]->addr + p->vmas[i]->size))
     {
       // Unmap complete VMA
-      int clear_vma = 0;
       int complete = 0;
       int new_offset = p->vmas[i]->offset;
       if (addr == p->vmas[i]->addr && size == p->vmas[i]->size)
@@ -853,7 +852,6 @@ int deallocvma(uint64 addr, int size)
         p->vmas[i]->used = 0;
         // fileclose cierra la ultima referencia del fichero correctamente
         complete = 1;
-        clear_vma = 1;
       }
       // Unmap first part of VMA
       else if (addr == p->vmas[i]->addr && size < p->vmas[i]->size)
@@ -920,13 +918,9 @@ int deallocvma(uint64 addr, int size)
         }
         else
           p->vmas[i]->mfile->ref--;
-      }
 
-
-      if (clear_vma)
         p->vmas[i] = 0;
-
-
+      }
 
       uint64 min_vma = TRAPFRAME;
       for (int v = 0; v < PER_PROCESS_VMAS; v++)

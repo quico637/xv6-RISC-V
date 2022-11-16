@@ -888,17 +888,13 @@ int deallocvma(uint64 addr, int size)
           begin_op();
           ilock(p->vmas[i]->mfile->ip);
           int w = 0;
-          pte_t *pte = walk(p->pagetable, addr + j, 0);
-          if ((*pte & PTE_D))
+          while (w < PGSIZE)
           {
-            while (w < PGSIZE)
-            {
-              int r = writei(p->vmas[i]->mfile->ip, 1, addr + j + w, p->vmas[i]->offset + j + w, n1);
-              w += r;
-              n1 = PGSIZE - w;
-              if (n1 > max)
-                n1 = max;
-            }
+            int r = writei(p->vmas[i]->mfile->ip, 1, addr + j + w, p->vmas[i]->offset + j + w, n1);
+            w += r;
+            n1 = PGSIZE - w;
+            if (n1 > max)
+              n1 = max;
           }
           uvmunmap(p->pagetable, addr + j, 1, 1);
           iunlock(p->vmas[i]->mfile->ip);

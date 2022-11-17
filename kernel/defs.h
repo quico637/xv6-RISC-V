@@ -64,6 +64,9 @@ void            ramdiskrw(struct buf*);
 void*           kalloc(void);
 void            kfree(void *);
 void            kinit(void);
+void		incref(void*);
+void		decref(void*);
+uint		getref(void*);
 
 // log.c
 void            initlog(int, struct superblock*);
@@ -130,6 +133,7 @@ void            initsleeplock(struct sleeplock*, char*);
 
 // string.c
 int             memcmp(const void*, const void*, uint);
+void*		memcpy(void*, const void*, uint);
 void*           memmove(void*, const void*, uint);
 void*           memset(void*, int, uint);
 char*           safestrcpy(char*, const char*, int);

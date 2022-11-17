@@ -359,17 +359,42 @@ int fork(void)
           vmas[j].mfile->ref++;
           np->nmp -= PGROUNDUP(vmas[j].size);
           vmas[j].addr = np->nmp;
-          for (int k = 0; k < PGROUDNUP(p->vmas[i]->size); k += PGSIZE)
+          for (int k = 0; k < PGROUNDUP(p->vmas[i]->size); k += PGSIZE)
           {
 
-            int phy;
-            if (phy = walkaddr(p->pagetable, p->vmas[i]->addr + k))
+            uint64 phy = walkaddr(p->pagetable, p->vmas[i]->addr + k);
+            if (phy)
             {
-              if (mappages(np->pagetable, PGROUNDDOWN(vmas[j].addr), PGSIZE, (uint64)phy, p->vmas[i]->prot | PTE_U) < 0)
+              int prot = 0;
+              switch (p->vmas[i]->prot)
               {
-                printf("usertrap(): Could not map physical to virtual address, pid=%d\n", p->pid);
+              case (PROT_READ):
+                prot = PTE_R;
+                break;
+              case (PROT_WRITE):
+                if (p->vmas[i]->flags != MAP_PRIVATE)
+                  prot = PTE_W;
+                break;
+              case (PROT_RW):
+                if (p->vmas[i]->flags != MAP_PRIVATE)
+                  prot = PTE_R | PTE_W;
+                else
+                  prot = PTE_R;
+                break;
+              default:
+                prot = 0;
+              }
+              if (mappages(np->pagetable, PGROUNDDOWN(vmas[j].addr + k), PGSIZE, phy, prot | PTE_U) < 0)
+              {
+                printf("fork(): Could not map physical to virtual address, pid=%d\n", np->pid);
                 setkilled(np);
               }
+              if (p->vmas[i]->flags == MAP_PRIVATE)
+              {
+                pte_t *entry = walk(p->pagetable, p->vmas[i]->addr + k, 0);
+                *entry = PA2PTE(phy) | prot | PTE_V | PTE_U;
+              }
+              incref((void*)phy);
             }
           }
           release(&vmas[j].lock);
@@ -905,7 +930,10 @@ int deallocvma(uint64 addr, int size)
             if (n1 > max)
               n1 = max;
           }
-          uvmunmap(p->pagetable, addr + j, 1, 1);
+          if (getref((void*)walkaddr(p->pagetable, addr+j)) == 1)
+            uvmunmap(p->pagetable, addr + j, 1, 1);
+          else
+            uvmunmap(p->pagetable, addr + j, 1, 0);
           iunlock(p->vmas[i]->mfile->ip);
           end_op();
           j += w;
@@ -915,7 +943,10 @@ int deallocvma(uint64 addr, int size)
       {
         for (int j = 0; j < size / PGSIZE; j++)
         {
-          uvmunmap(p->pagetable, addr + j * PGSIZE, 1, 1);
+          if (getref((void*)walkaddr(p->pagetable, addr+j*PGSIZE)) == 1)
+            uvmunmap(p->pagetable, addr + j * PGSIZE, 1, 1);
+          else
+            uvmunmap(p->pagetable, addr + j * PGSIZE, 1, 0);
         }
       }
       p->vmas[i]->offset = new_offset;

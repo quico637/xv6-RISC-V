@@ -123,9 +123,11 @@ kalloc(void)
   }
   release(&kmem.lock);
 
-  if(r)
+  if(r){
     memset((char*)((r - kmem.runs) * PGSIZE), 5, PGSIZE); // fill with junk
-  return (void*)((r - kmem.runs) * PGSIZE);
+    return (void*)((r - kmem.runs) * PGSIZE);
+  }  
+  return (void*)0;
 }
 
 

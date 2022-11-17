@@ -76,6 +76,35 @@ void usertrap(void)
     uint64 addr = r_stval();
     int solved = 0;
 
+    uint64 phy = walkaddr(p->pagetable, addr);
+    if (phy && r_scause() == 15)
+    {
+      int ref = getref(&phy);
+      if (ref > 1) {
+        char *new_phy = kalloc();
+        if (new_phy == 0)
+        {
+          printf("usertrap(): No physical pages available. pid=%d\n", p->pid);
+          setkilled(p);
+        }
+        memcpy(new_phy, &phy, PGSIZE);
+        uint64 *pte = walk(p->pagetable, addr, 0);
+        *pte = *pte & ~(PTE_V);
+        if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)new_phy, PTE_FLAGS(*pte) | PTE_W) < 0)
+        {
+          kfree(new_phy);
+          printf("usertrap(): Could not map physical to virtual address, pid=%d\n", p->pid);
+          setkilled(p);
+        }
+        decref((void*)phy);
+      }
+      if (ref == 1) {
+        uint64 *pte = walk(p->pagetable, addr, 0);
+        *pte = *pte | PTE_W;
+      }
+      solved = 1;
+    }
+
     for (int i = 0; i < PER_PROCESS_VMAS && !solved; i++)
     {
       if (p->vmas[i] == 0)

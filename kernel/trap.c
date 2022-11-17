@@ -123,8 +123,6 @@ void usertrap(void)
           prot = 0;
         }
 
-
-
         if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)phy_addr, prot | PTE_U) < 0)
         {
           kfree(phy_addr);

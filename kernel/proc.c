@@ -339,8 +339,6 @@ int fork(void)
 
   pid = np->pid;
 
-
-
   // child process inherits father's VMAs
   for (i = 0; i < PER_PROCESS_VMAS; i++)
   {
@@ -361,6 +359,19 @@ int fork(void)
           vmas[j].mfile->ref++;
           np->nmp -= PGROUNDUP(vmas[j].size);
           vmas[j].addr = np->nmp;
+          for (int k = 0; k < PGROUDNUP(p->vmas[i]->size); k += PGSIZE)
+          {
+
+            int phy;
+            if (phy = walkaddr(p->pagetable, p->vmas[i]->addr + k))
+            {
+              if (mappages(np->pagetable, PGROUNDDOWN(vmas[j].addr), PGSIZE, (uint64)phy, p->vmas[i]->prot | PTE_U) < 0)
+              {
+                printf("usertrap(): Could not map physical to virtual address, pid=%d\n", p->pid);
+                setkilled(np);
+              }
+            }
+          }
           release(&vmas[j].lock);
           break;
         }
@@ -909,7 +920,7 @@ int deallocvma(uint64 addr, int size)
       }
       p->vmas[i]->offset = new_offset;
 
-      if(complete)
+      if (complete)
       {
         if (p->vmas[i]->mfile->ref == 1)
         {

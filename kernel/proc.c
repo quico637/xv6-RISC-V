@@ -555,22 +555,45 @@ scheduler(void)
   
   c->proc = 0;
   for(;;){
+
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
-
+    int total_tickets = 0;
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
+        total_tickets += p->tickets;
+      }
+      release(&p->lock);
+    }
 
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
+    if(total_tickets < 1)
+    {
+      continue;
+    }
+
+    int seed = ticks;
+    int random = randomrange(seed, 1, total_tickets);
+
+    for(p = proc; p < &proc[NPROC]; p++) {    
+      acquire(&p->lock);
+      if(p->state == RUNNABLE) {
+        if (random <= p->tickets) {
+          // HAS BEEN SELECTED
+          p->state = RUNNING;
+          p->ticks++; /* ASSUMING 1 CLOCK TICK PER QUANTUM */
+          c->proc = p;
+          swtch(&c->context, &p->context);
+
+          // Process is done running for now.
+          // It should have changed its p->state before coming back.
+          c->proc = 0;
+
+          /* SOLAMENTE PUEDES VOLVER AQUI CUANDO HAYAS VUELTO DE UN CAMBIO DE CONTEXTO */ 
+          release(&p->lock);
+          break;
+        }
+        random -= p->tickets;
       }
       release(&p->lock);
     }

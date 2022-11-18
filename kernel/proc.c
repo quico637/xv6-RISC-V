@@ -547,60 +547,36 @@ int wait(uint64 addr)
 //  - swtch to start running that process.
 //  - eventually that process transfers control
 //    via swtch back to the scheduler.
-void scheduler(void)
+void
+scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
-
+  
   c->proc = 0;
-  for (;;)
-  {
-
+  for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
-    int total_tickets = 0;
-    for (p = proc; p < &proc[NPROC]; p++)
-    {
+
+    for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
-      if (p->state == RUNNABLE)
-      {
-        total_tickets += p->tickets;
-      }
-      release(&p->lock);
-    }
+      if(p->state == RUNNABLE) {
+        // Switch to chosen process.  It is the process's job
+        // to release its lock and then reacquire it
+        // before jumping back to us.
+        p->state = RUNNING;
+        c->proc = p;
+        swtch(&c->context, &p->context);
 
-    if (total_tickets < 1)
-    {
-      continue;
-    }
-
-    int seed = ticks;
-    int random = randomrange(seed, 1, total_tickets);
-
-    for (p = proc; p < &proc[NPROC] && random > 0; p++)
-    {
-      acquire(&p->lock);
-      if (p->state == RUNNABLE)
-      {
-        if (random <= p->tickets)
-        {
-          // HAS BEEN SELECTED
-          p->state = RUNNING;
-          p->ticks++; /* ASSUMING 1 CLOCK TICK PER QUANTUM */
-          c->proc = p;
-
-          swtch(&c->context, &p->context);
-
-          // Process is done running for now.
-          // It should have changed its p->state before coming back.
-          c->proc = 0;
-        }
-        random -= p->tickets;
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        c->proc = 0;
       }
       release(&p->lock);
     }
   }
 }
+
 
 // Switch to scheduler.  Must hold only p->lock
 // and have changed proc->state. Saves and restores

@@ -137,6 +137,7 @@ UPROGS=\
 	$U/_settickets\
 	$U/_getpinfo\
 	$U/_mmaptest\
+	$U/_forksharedtest\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

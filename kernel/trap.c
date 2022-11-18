@@ -79,7 +79,7 @@ void usertrap(void)
     uint64 phy = walkaddr(p->pagetable, addr);
     if (phy && r_scause() == 15)
     {
-      int ref = getref(&phy);
+      int ref = getref((void*)phy);
       if (ref > 1) {
         char *new_phy = kalloc();
         if (new_phy == 0)
@@ -87,7 +87,7 @@ void usertrap(void)
           printf("usertrap(): No physical pages available. pid=%d\n", p->pid);
           setkilled(p);
         }
-        memcpy(new_phy, &phy, PGSIZE);
+        memcpy(new_phy, (void*)phy, PGSIZE);
         uint64 *pte = walk(p->pagetable, addr, 0);
         *pte = *pte & ~(PTE_V);
         if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)new_phy, PTE_FLAGS(*pte) | PTE_W) < 0)

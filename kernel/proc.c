@@ -577,7 +577,7 @@ void scheduler(void)
     int seed = ticks;
     int random = randomrange(seed, 1, total_tickets);
 
-    for (p = proc; p < &proc[NPROC]; p++)
+    for (p = proc; p < &proc[NPROC] && random > 0; p++)
     {
       acquire(&p->lock);
       if (p->state == RUNNABLE)
@@ -594,10 +594,6 @@ void scheduler(void)
           // Process is done running for now.
           // It should have changed its p->state before coming back.
           c->proc = 0;
-
-          /* SOLAMENTE PUEDES VOLVER AQUI CUANDO HAYAS VUELTO DE UN CAMBIO DE CONTEXTO */
-          release(&p->lock);
-          break;
         }
         random -= p->tickets;
       }
@@ -943,10 +939,14 @@ int deallocvma(uint64 addr, int size)
       {
         for (int j = 0; j < size / PGSIZE; j++)
         {
-          if (getref((void*)walkaddr(p->pagetable, addr+j*PGSIZE)) == 1)
-            uvmunmap(p->pagetable, addr + j * PGSIZE, 1, 1);
-          else
-            uvmunmap(p->pagetable, addr + j * PGSIZE, 1, 0);
+          uint64 phy_addr = walkaddr(p->pagetable, addr+j*PGSIZE);
+          if (phy_addr)
+          {
+            if (getref((void*)phy_addr) == 1)
+              uvmunmap(p->pagetable, addr + j * PGSIZE, 1, 1);
+            else
+              uvmunmap(p->pagetable, addr + j * PGSIZE, 1, 0);
+          }
         }
       }
       p->vmas[i]->offset = new_offset;

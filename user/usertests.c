@@ -785,7 +785,7 @@ pipe1(char *s)
   }
 }
 
-
+// sds
 // test if child is killed (status = -1)
 void
 killstatus(char *s)

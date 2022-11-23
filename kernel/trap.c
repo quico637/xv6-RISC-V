@@ -143,14 +143,13 @@ void usertrap(void)
           // para que no vea cosas de procesos anteriores.
           memset(phy_addr, 0, PGSIZE);
 
-          struct file *f = p->vmas[i]->mfile;
-          ilock(f->ip);
-          if (readi(f->ip, 0, (uint64)phy_addr, PGROUNDDOWN(addr - p->vmas[i]->addr), PGSIZE) < 0)
+          ilock(p->vmas[i]->ip);
+          if (readi(p->vmas[i]->ip, 0, (uint64)phy_addr, PGROUNDDOWN(addr - p->vmas[i]->addr) + p->vmas[i]->offset, PGSIZE) < 0)
           {
             printf("readi(): failed. pid=%d\n", p->pid);
             setkilled(p);
           }
-          iunlock(f->ip);
+          iunlock(p->vmas[i]->ip);
 
           int prot;
           switch (p->vmas[i]->prot)

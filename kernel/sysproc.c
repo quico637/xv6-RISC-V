@@ -129,7 +129,7 @@ void *
 sys_mmap(void)
 {
   
-  int length, prot, flags, fd;
+  int length, prot, flags, fd, offset;
   uint64 addr;
   
   struct file * f;
@@ -141,6 +141,7 @@ sys_mmap(void)
   argint(1, &length);
   argint(2, &prot);
   argint(3, &flags);
+  argint(4, &offset);
   
   if(argfd(4, &fd, &f) < 0)
   {
@@ -149,6 +150,12 @@ sys_mmap(void)
   }
     
   if(prot != PROT_READ && prot != PROT_WRITE && prot != PROT_RW)
+  {
+    addr = (uint64) MAP_FAILED;
+    return (void *) MAP_FAILED;
+  }
+
+  if(prot == PROT_EXEC)
   {
     addr = (uint64) MAP_FAILED;
     return (void *) MAP_FAILED;
@@ -178,7 +185,7 @@ sys_mmap(void)
     return (void *) MAP_FAILED;
   }
 
-  addr = allocvma(length, prot, flags, f, fd, 0);
+  addr = allocvma(length, prot, flags, f, fd, offset);
   return (void *) addr;
 
 }

@@ -7,7 +7,7 @@
 #include "defs.h"
 #include "elf.h"
 
-static int loadseg(pde_t *, uint64, struct inode *, uint, uint);
+//static int loadseg(pde_t *, uint64, struct inode *, uint, uint);
 
 int flags2perm(int flags)
 {
@@ -50,6 +50,10 @@ exec(char *path, char **argv)
     goto bad;
 
   // Load program into memory.
+  uint64 textsz = 0;
+  uint64 datasz = 0;
+  int textoff = -1;
+  int dataoff = -1;
   for(i=0, off=elf.phoff; i<elf.phnum; i++, off+=sizeof(ph)){
     if(readi(ip, 0, (uint64)&ph, off, sizeof(ph)) != sizeof(ph))
       goto bad;
@@ -61,13 +65,28 @@ exec(char *path, char **argv)
       goto bad;
     if(ph.vaddr % PGSIZE != 0)
       goto bad;
-    uint64 sz1;
-    if((sz1 = uvmalloc(pagetable, sz, ph.vaddr + ph.memsz, flags2perm(ph.flags))) == 0)
-      goto bad;
-    sz = sz1;
-    if(loadseg(pagetable, ph.vaddr, ip, ph.off, ph.filesz) < 0)
-      goto bad;
+    //uint64 sz1;
+    if (flags2perm(ph.flags) == PTE_X) {
+      textsz += ph.memsz;
+      if (textoff == -1) {
+        textoff = ph.off;
+      }
+    }
+    else if (flags2perm(ph.flags) == PTE_W) {
+      datasz += ph.memsz;
+      if (dataoff == -1) {
+        dataoff = ph.off;
+      }
+    }
+
+    //if((sz1 = uvmalloc(pagetable, sz, ph.vaddr + ph.memsz, flags2perm(ph.flags))) == 0)
+    //  goto bad;
+    //sz = sz1;
+    //if(loadseg(pagetable, ph.vaddr, ip, ph.off, ph.filesz) < 0)
+    //  goto bad;
   }
+  allocvmaelf(textsz, ip, textoff, 0, 1);
+  allocvmaelf(datasz, ip, dataoff, PGROUNDUP(textsz), 0);
   iunlockput(ip);
   end_op();
   ip = 0;
@@ -76,6 +95,8 @@ exec(char *path, char **argv)
 
   /* SETTING UP NUMBER OF TICKS */
   p->ticks = 0;
+
+  sz = PGROUNDUP(textsz) + PGROUNDUP(datasz);
 
   uint64 oldsz = p->sz;
   // p->nmp = TRAPFRAME;
@@ -155,23 +176,23 @@ exec(char *path, char **argv)
 // va must be page-aligned
 // and the pages from va to va+sz must already be mapped.
 // Returns 0 on success, -1 on failure.
-static int
-loadseg(pagetable_t pagetable, uint64 va, struct inode *ip, uint offset, uint sz)
-{
-  uint i, n;
-  uint64 pa;
+// static int
+// loadseg(pagetable_t pagetable, uint64 va, struct inode *ip, uint offset, uint sz)
+// {
+//   uint i, n;
+//   uint64 pa;
 
-  for(i = 0; i < sz; i += PGSIZE){
-    pa = walkaddr(pagetable, va + i);
-    if(pa == 0)
-      panic("loadseg: address should exist");
-    if(sz - i < PGSIZE)
-      n = sz - i;
-    else
-      n = PGSIZE;
-    if(readi(ip, 0, (uint64)pa, offset+i, n) != n)
-      return -1;
-  }
+//   for(i = 0; i < sz; i += PGSIZE){
+//     pa = walkaddr(pagetable, va + i);
+//     if(pa == 0)
+//       panic("loadseg: address should exist");
+//     if(sz - i < PGSIZE)
+//       n = sz - i;
+//     else
+//       n = PGSIZE;
+//     if(readi(ip, 0, (uint64)pa, offset+i, n) != n)
+//       return -1;
+//   }
   
-  return 0;
-}
+//   return 0;
+// }

@@ -25,6 +25,7 @@ struct spinlock pid_lock;
 
 extern void forkret(void);
 static void freeproc(struct proc *p);
+static void _deallocvma(struct vma* vma);
 
 extern char trampoline[]; // trampoline.S
 
@@ -312,7 +313,10 @@ int fork(void)
   }
 
   // Copy user memory from parent to child.
-  if (uvmcopy(p->pagetable, np->pagetable, p->sz) < 0)
+  allocvmaelf(p->text.size, p->text.ip, p->text.offset, 0, 1);
+  allocvmaelf(p->data.size, p->data.ip, p->data.offset, PGROUNDUP(p->text.size), 0);
+
+  if (_uvmcopy(p->pagetable, np->pagetable, p->sz, PGROUNDUP(p->data.addr + p->data.size)) < 0)
   {
     freeproc(np);
     release(&np->lock);
@@ -394,7 +398,7 @@ int fork(void)
                 pte_t *entry = walk(p->pagetable, p->vmas[i]->addr + k, 0);
                 *entry = PA2PTE(phy) | prot | PTE_V | PTE_U;
               }
-              incref((void*)phy);
+              incref((void *)phy);
             }
           }
           release(&vmas[j].lock);
@@ -455,6 +459,9 @@ void exit(int status)
   }
 
   // dealloc all VMAS
+  _deallocvma(&(p->text));
+  _deallocvma(&(p->data));
+
   for (int i = 0; i < PER_PROCESS_VMAS; i++)
   {
     if (p->vmas[i])
@@ -547,27 +554,29 @@ int wait(uint64 addr)
 //  - swtch to start running that process.
 //  - eventually that process transfers control
 //    via swtch back to the scheduler.
-void
-scheduler(void)
+void scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
-  
+
   c->proc = 0;
-  for(;;){
+  for (;;)
+  {
 
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
     int total_tickets = 0;
-    for(p = proc; p < &proc[NPROC]; p++) {
+    for (p = proc; p < &proc[NPROC]; p++)
+    {
       acquire(&p->lock);
-      if(p->state == RUNNABLE) {
+      if (p->state == RUNNABLE)
+      {
         total_tickets += p->tickets;
       }
       release(&p->lock);
     }
 
-    if(total_tickets < 1)
+    if (total_tickets < 1)
     {
       continue;
     }
@@ -575,10 +584,13 @@ scheduler(void)
     int seed = ticks;
     int random = randomrange(seed, 1, total_tickets);
 
-    for(p = proc; p < &proc[NPROC]; p++) {    
+    for (p = proc; p < &proc[NPROC]; p++)
+    {
       acquire(&p->lock);
-      if(p->state == RUNNABLE) {
-        if (random <= p->tickets) {
+      if (p->state == RUNNABLE)
+      {
+        if (random <= p->tickets)
+        {
           // HAS BEEN SELECTED
           p->state = RUNNING;
           p->ticks++; /* ASSUMING 1 CLOCK TICK PER QUANTUM */
@@ -589,7 +601,7 @@ scheduler(void)
           // It should have changed its p->state before coming back.
           c->proc = 0;
 
-          /* SOLAMENTE PUEDES VOLVER AQUI CUANDO HAYAS VUELTO DE UN CAMBIO DE CONTEXTO */ 
+          /* SOLAMENTE PUEDES VOLVER AQUI CUANDO HAYAS VUELTO DE UN CAMBIO DE CONTEXTO */
           release(&p->lock);
           break;
         }
@@ -599,7 +611,6 @@ scheduler(void)
     }
   }
 }
-
 
 // Switch to scheduler.  Must hold only p->lock
 // and have changed proc->state. Saves and restores
@@ -852,8 +863,9 @@ allocvma(int length, int prot, int flags, struct file *f, int fd, int offset)
           vmas[j].prot = prot;
           vmas[j].flags = flags;
           vmas[j].size = length;
-          vmas[j].offset = 0;
+          vmas[j].offset = offset;
           vmas[j].fd = fd;
+          vmas[j].ip = f->ip;
           vmas[j].mfile->ref++;
           p->nmp -= PGROUNDUP(length);
           vmas[j].addr = p->nmp;
@@ -866,6 +878,26 @@ allocvma(int length, int prot, int flags, struct file *f, int fd, int offset)
     }
   }
   return (uint64)MAP_FAILED;
+}
+
+void allocvmaelf(int length, struct inode *ip, int offset, uint64 vaddr, int text)
+{
+  struct proc *p = myproc();
+  struct vma vma = p->data;
+  int flags = PROT_RW;
+  if (text) {
+    vma = p->text;
+    flags = PROT_EXEC | PROT_READ;
+  }
+  acquire(&vma.lock);
+  vma.used = 1;
+  vma.prot = MAP_PRIVATE;
+  vma.flags = flags;
+  vma.size = length;
+  vma.offset = offset;
+  vma.ip = ip;
+  vma.addr = vaddr;
+  release(&vma.lock);
 }
 
 int deallocvma(uint64 addr, int size)
@@ -915,21 +947,21 @@ int deallocvma(uint64 addr, int size)
           }
 
           begin_op();
-          ilock(p->vmas[i]->mfile->ip);
+          ilock(p->vmas[i]->ip);
           int w = 0;
           while (w < PGSIZE)
           {
-            int r = writei(p->vmas[i]->mfile->ip, 1, addr + j + w, p->vmas[i]->offset + j + w, n1);
+            int r = writei(p->vmas[i]->ip, 1, addr + j + w, p->vmas[i]->offset + j + w, n1);
             w += r;
             n1 = PGSIZE - w;
             if (n1 > max)
               n1 = max;
           }
-          if (getref((void*)walkaddr(p->pagetable, addr+j)) == 1)
+          if (getref((void *)walkaddr(p->pagetable, addr + j)) == 1)
             uvmunmap(p->pagetable, addr + j, 1, 1);
           else
             uvmunmap(p->pagetable, addr + j, 1, 0);
-          iunlock(p->vmas[i]->mfile->ip);
+          iunlock(p->vmas[i]->ip);
           end_op();
           j += w;
         }
@@ -938,10 +970,10 @@ int deallocvma(uint64 addr, int size)
       {
         for (int j = 0; j < size / PGSIZE; j++)
         {
-          uint64 phy_addr = walkaddr(p->pagetable, addr+j*PGSIZE);
+          uint64 phy_addr = walkaddr(p->pagetable, addr + j * PGSIZE);
           if (phy_addr)
           {
-            if (getref((void*)phy_addr) == 1)
+            if (getref((void *)phy_addr) == 1)
               uvmunmap(p->pagetable, addr + j * PGSIZE, 1, 1);
             else
               uvmunmap(p->pagetable, addr + j * PGSIZE, 1, 0);
@@ -974,4 +1006,21 @@ int deallocvma(uint64 addr, int size)
     }
   }
   return -1;
+}
+
+void _deallocvma(struct vma* vma)
+{
+  struct proc* p = myproc();
+  for (int j = 0; j < vma->size / PGSIZE; j++)
+  {
+    uint64 phy_addr = walkaddr(p->pagetable, vma->addr + j * PGSIZE);
+    if (phy_addr)
+    {
+      if (getref((void *)phy_addr) == 1)
+        uvmunmap(p->pagetable, vma->addr + j * PGSIZE, 1, 1);
+      else
+        uvmunmap(p->pagetable, vma->addr + j * PGSIZE, 1, 0);
+    }
+  }
+  vma->used = 0;
 }

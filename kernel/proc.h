@@ -23,6 +23,7 @@ struct vma {
   int used;                 // boolean field to check if is used
   struct file* mfile;       // file mapped to process' virtual address space
   int fd;                   // file descriptor
+  struct inode* ip;         // inode for text and data VMAs
   uint64 addr;              // Address were the mapped file begins 
   int prot;                 // Protections associated to the file
   int flags;                // Flags associated to the file
@@ -108,6 +109,8 @@ struct proc {
 
   // VMAS
   struct vma* vmas[PER_PROCESS_VMAS];
+  struct vma text;
+  struct vma data;
 
   // wait_lock must be held when using this:
   struct proc *parent;         // Parent process

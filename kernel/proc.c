@@ -539,14 +539,6 @@ int wait(uint64 addr)
     sleep(p, &wait_lock); // DOC: wait-sleep
   }
 }
-
-// Per-CPU process scheduler.
-// Each CPU calls scheduler() after setting itself up.
-// Scheduler never returns.  It loops, doing:
-//  - choose a process to run.
-//  - swtch to start running that process.
-//  - eventually that process transfers control
-//    via swtch back to the scheduler.
 void
 scheduler(void)
 {
@@ -572,8 +564,9 @@ scheduler(void)
       continue;
     }
 
-    int seed = ticks;
+    int seed = total_tickets;
     int random = randomrange(seed, 1, total_tickets);
+
 
     for(p = proc; p < &proc[NPROC]; p++) {    
       acquire(&p->lock);
@@ -599,7 +592,6 @@ scheduler(void)
     }
   }
 }
-
 
 // Switch to scheduler.  Must hold only p->lock
 // and have changed proc->state. Saves and restores

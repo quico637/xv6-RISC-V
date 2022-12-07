@@ -31,6 +31,38 @@ void trapinithart(void)
   w_stvec((uint64)kernelvec);
 }
 
+void allocPhysicalVMA(struct vma *vma, struct proc *p, uint64 addr, int prot)
+{
+  // leo y cargo la pagina
+
+  // coger un MP fisico
+  char *phy_addr = kalloc();
+  if (phy_addr == 0)
+  {
+    printf("usertrap(): No physical pages available. pid=%d\n", p->pid);
+    setkilled(p);
+  }
+
+  // para que no vea cosas de procesos anteriores.
+  memset(phy_addr, 0, PGSIZE);
+
+  struct file *f = vma->mfile;
+  ilock(f->ip);
+  if (readi(f->ip, 0, (uint64)phy_addr, PGROUNDDOWN(addr - vma->addr) + vma->offset, PGSIZE) < 0)
+  {
+    printf("readi(): failed. pid=%d\n", p->pid);
+    setkilled(p);
+  }
+  iunlock(f->ip);
+
+  if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)phy_addr, prot) < 0)
+  {
+    kfree(phy_addr);
+    printf("usertrap(): Could not map physical to virtual address, pid=%d\n", p->pid);
+    setkilled(p);
+  }
+}
+
 //
 // handle an interrupt, exception, or system call from user space.
 // called from trampoline.S
@@ -73,32 +105,8 @@ void usertrap(void)
     uint64 addr = r_stval();
     if (addr >= 0 && p->text.addr < (p->text.addr + p->text.size))
     {
-      char *phy_addr = kalloc();
-      if (phy_addr == 0)
-      {
-        printf("usertrap(): No physical pages available. pid=%d\n", p->pid);
-        setkilled(p);
-      }
-
-      // para que no vea cosas de procesos anteriores.
-      memset(phy_addr, 0, PGSIZE);
-
-      ilock(p->text.ip);
-      if (readi(p->text.ip, 0, (uint64)phy_addr, PGROUNDDOWN(addr - p->text.addr) + p->text.offset, PGSIZE) < 0)
-      {
-        printf("readi(): failed. pid=%d\n", p->pid);
-        setkilled(p);
-      }
-      iunlock(p->text.ip);
-
       int prot = PTE_R | PTE_X;
-
-      if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)phy_addr, prot | PTE_U) < 0)
-      {
-        kfree(phy_addr);
-        printf("usertrap(): Could not map physical to virtual address, pid=%d\n", p->pid);
-        setkilled(p);
-      }
+      allocPhysicalVMA(&(p->text), p, addr, prot | PTE_U);
     }
   }
   else if (r_scause() == 13 || r_scause() == 15)
@@ -156,32 +164,8 @@ void usertrap(void)
     }
     else if (addr >= 0 && addr < (p->data.addr + p->data.size))
     {
-      char *phy_addr = kalloc();
-      if (phy_addr == 0)
-      {
-        printf("usertrap(): No physical pages available. pid=%d\n", p->pid);
-        setkilled(p);
-      }
-
-      // para que no vea cosas de procesos anteriores.
-      memset(phy_addr, 0, PGSIZE);
-
-      ilock(p->data.ip);
-      if (readi(p->data.ip, 0, (uint64)phy_addr, PGROUNDDOWN(addr - p->data.addr) + p->data.offset, PGSIZE) < 0)
-      {
-        printf("readi(): failed. pid=%d\n", p->pid);
-        setkilled(p);
-      }
-      iunlock(p->data.ip);
-
       int prot = PTE_R | PTE_W;
-
-      if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)phy_addr, prot | PTE_U) < 0)
-      {
-        kfree(phy_addr);
-        printf("usertrap(): Could not map physical to virtual address, pid=%d\n", p->pid);
-        setkilled(p);
-      }
+      allocPhysicalVMA(&(p->data), p, addr, prot | PTE_U);
     }
     else
     {
@@ -189,32 +173,9 @@ void usertrap(void)
       {
         if (p->vmas[i] == 0)
           continue;
-
-        // printf("TONTO EL Q LO LEA\n");
-
+        
         if (addr >= p->vmas[i]->addr && addr < (p->vmas[i]->addr + p->vmas[i]->size))
         {
-          // leo y cargo la pagina
-
-          // coger un MP fisico
-          char *phy_addr = kalloc();
-          if (phy_addr == 0)
-          {
-            printf("usertrap(): No physical pages available. pid=%d\n", p->pid);
-            setkilled(p);
-          }
-
-          // para que no vea cosas de procesos anteriores.
-          memset(phy_addr, 0, PGSIZE);
-
-          ilock(p->vmas[i]->ip);
-          if (readi(p->vmas[i]->ip, 0, (uint64)phy_addr, PGROUNDDOWN(addr - p->vmas[i]->addr) + p->vmas[i]->offset, PGSIZE) < 0)
-          {
-            printf("readi(): failed. pid=%d\n", p->pid);
-            setkilled(p);
-          }
-          iunlock(p->vmas[i]->ip);
-
           int prot;
           switch (p->vmas[i]->prot)
           {
@@ -231,12 +192,7 @@ void usertrap(void)
             prot = 0;
           }
 
-          if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)phy_addr, prot | PTE_U) < 0)
-          {
-            kfree(phy_addr);
-            printf("usertrap(): Could not map physical to virtual address, pid=%d\n", p->pid);
-            setkilled(p);
-          }
+          allocPhysicalVMA(p->vmas[i], p, addr, prot | PTE_U);
 
           solved = 1;
         }
@@ -335,32 +291,8 @@ void kerneltrap()
     uint64 addr = r_stval();
     if (addr >= 0 && p->text.addr < (p->text.addr + p->text.size))
     {
-      char *phy_addr = kalloc();
-      if (phy_addr == 0)
-      {
-        printf("usertrap(): No physical pages available. pid=%d\n", p->pid);
-        setkilled(p);
-      }
-
-      // para que no vea cosas de procesos anteriores.
-      memset(phy_addr, 0, PGSIZE);
-
-      ilock(p->text.ip);
-      if (readi(p->text.ip, 0, (uint64)phy_addr, PGROUNDDOWN(addr - p->text.addr) + p->text.offset, PGSIZE) < 0)
-      {
-        printf("readi(): failed. pid=%d\n", p->pid);
-        setkilled(p);
-      }
-      iunlock(p->text.ip);
-
       int prot = PTE_R | PTE_X;
-
-      if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)phy_addr, prot | PTE_U) < 0)
-      {
-        kfree(phy_addr);
-        printf("usertrap(): Could not map physical to virtual address, pid=%d\n", p->pid);
-        setkilled(p);
-      }
+      allocPhysicalVMA(&(p->text), p, addr, prot | PTE_U);
     }
   }
   else if (r_scause() == 13 || r_scause() == 15)
@@ -418,32 +350,8 @@ void kerneltrap()
     }
     else if (addr >= 0 && addr < (p->data.addr + p->data.size))
     {
-      char *phy_addr = kalloc();
-      if (phy_addr == 0)
-      {
-        printf("usertrap(): No physical pages available. pid=%d\n", p->pid);
-        setkilled(p);
-      }
-
-      // para que no vea cosas de procesos anteriores.
-      memset(phy_addr, 0, PGSIZE);
-
-      ilock(p->data.ip);
-      if (readi(p->data.ip, 0, (uint64)phy_addr, PGROUNDDOWN(addr - p->data.addr) + p->data.offset, PGSIZE) < 0)
-      {
-        printf("readi(): failed. pid=%d\n", p->pid);
-        setkilled(p);
-      }
-      iunlock(p->data.ip);
-
       int prot = PTE_R | PTE_W;
-
-      if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)phy_addr, prot | PTE_U) < 0)
-      {
-        kfree(phy_addr);
-        printf("usertrap(): Could not map physical to virtual address, pid=%d\n", p->pid);
-        setkilled(p);
-      }
+      allocPhysicalVMA(&(p->data), p, addr, prot | PTE_U);
     }
     else
     {
@@ -451,32 +359,9 @@ void kerneltrap()
       {
         if (p->vmas[i] == 0)
           continue;
-
-        // printf("TONTO EL Q LO LEA\n");
-
+        
         if (addr >= p->vmas[i]->addr && addr < (p->vmas[i]->addr + p->vmas[i]->size))
         {
-          // leo y cargo la pagina
-
-          // coger un MP fisico
-          char *phy_addr = kalloc();
-          if (phy_addr == 0)
-          {
-            printf("usertrap(): No physical pages available. pid=%d\n", p->pid);
-            setkilled(p);
-          }
-
-          // para que no vea cosas de procesos anteriores.
-          memset(phy_addr, 0, PGSIZE);
-
-          ilock(p->vmas[i]->ip);
-          if (readi(p->vmas[i]->ip, 0, (uint64)phy_addr, PGROUNDDOWN(addr - p->vmas[i]->addr) + p->vmas[i]->offset, PGSIZE) < 0)
-          {
-            printf("readi(): failed. pid=%d\n", p->pid);
-            setkilled(p);
-          }
-          iunlock(p->vmas[i]->ip);
-
           int prot;
           switch (p->vmas[i]->prot)
           {
@@ -493,12 +378,7 @@ void kerneltrap()
             prot = 0;
           }
 
-          if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)phy_addr, prot | PTE_U) < 0)
-          {
-            kfree(phy_addr);
-            printf("usertrap(): Could not map physical to virtual address, pid=%d\n", p->pid);
-            setkilled(p);
-          }
+          allocPhysicalVMA(p->vmas[i], p, addr, prot | PTE_U);
 
           solved = 1;
         }

@@ -885,21 +885,21 @@ allocvma(int length, int prot, int flags, struct file *f, int fd, int offset)
 void allocvmaelf(int length, struct inode *ip, int offset, uint64 vaddr, int text)
 {
   struct proc *p = myproc();
-  struct vma vma = p->data;
+  struct vma *vma = &(p->data);
   int flags = PROT_RW;
   if (text) {
-    vma = p->text;
+    vma = &(p->text);
     flags = PROT_EXEC | PROT_READ;
   }
-  acquire(&vma.lock);
-  vma.used = 1;
-  vma.prot = MAP_PRIVATE;
-  vma.flags = flags;
-  vma.size = length;
-  vma.offset = offset;
-  vma.ip = ip;
-  vma.addr = vaddr;
-  release(&vma.lock);
+  acquire(&vma->lock);
+  vma->used = 1;
+  vma->prot = MAP_PRIVATE;
+  vma->flags = flags;
+  vma->size = length;
+  vma->offset = offset;
+  vma->ip = ip;
+  vma->addr = vaddr;
+  release(&vma->lock);
 }
 
 int deallocvma(uint64 addr, int size)

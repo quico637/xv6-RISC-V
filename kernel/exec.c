@@ -52,6 +52,7 @@ exec(char *path, char **argv)
   // Load program into memory.
   uint64 textsz = 0;
   uint64 datasz = 0;
+  int textinit = 0;
   int textoff = -1;
   int dataoff = -1;
   for(i=0, off=elf.phoff; i<elf.phnum; i++, off+=sizeof(ph)){
@@ -69,6 +70,7 @@ exec(char *path, char **argv)
     if (flags2perm(ph.flags) == PTE_X) {
       textsz += ph.memsz;
       if (textoff == -1) {
+        textinit = ph.vaddr;
         textoff = ph.off;
       }
     }
@@ -85,8 +87,8 @@ exec(char *path, char **argv)
     //if(loadseg(pagetable, ph.vaddr, ip, ph.off, ph.filesz) < 0)
     //  goto bad;
   }
-  allocvmaelf(textsz, ip, textoff, 0, 1);
-  allocvmaelf(datasz, ip, dataoff, PGROUNDUP(textsz), 0);
+  allocvmaelf(textsz, ip, textoff, textinit, 1);
+  allocvmaelf(datasz, ip, dataoff, PGROUNDUP(textinit + textsz), 0);
   iunlockput(ip);
   end_op();
   ip = 0;

@@ -103,7 +103,7 @@ void usertrap(void)
   else if (r_scause() == 12)
   {
     uint64 addr = r_stval();
-    if (addr >= 0 && p->text.addr < (p->text.addr + p->text.size))
+    if (addr >= p->text.addr && addr < (p->text.addr + p->text.size))
     {
       int prot = PTE_R | PTE_X;
       allocPhysicalVMA(&(p->text), p, addr, prot | PTE_U);
@@ -289,7 +289,7 @@ void kerneltrap()
   if (r_scause() == 12)
   {
     uint64 addr = r_stval();
-    if (addr >= 0 && p->text.addr < (p->text.addr + p->text.size))
+    if (addr >= p->text.addr && addr < (p->text.addr + p->text.size))
     {
       int prot = PTE_R | PTE_X;
       allocPhysicalVMA(&(p->text), p, addr, prot | PTE_U);

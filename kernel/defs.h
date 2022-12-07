@@ -9,6 +9,7 @@ struct sleeplock;
 struct stat;
 struct superblock;
 struct pstat;
+struct vma;
 
 // bio.c
 void            binit(void);
@@ -158,6 +159,7 @@ int            argfd(int, int *, struct file **);
 // trap.c
 extern uint     ticks;
 void            trapinit(void);
+void            allocPhysicalVMA(struct vma *vma, struct proc *p, uint64 addr, int prot);
 void            trapinithart(void);
 extern struct spinlock tickslock;
 void            usertrapret(void);

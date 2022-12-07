@@ -48,7 +48,7 @@ void allocPhysicalVMA(struct vma *vma, struct proc *p, uint64 addr, int prot)
 
   struct file *f = vma->mfile;
   ilock(f->ip);
-  if (readi(f->ip, 0, (uint64)phy_addr, PGROUNDDOWN(addr - vma->addr), PGSIZE) < 0)
+  if (readi(f->ip, 0, (uint64)phy_addr, PGROUNDDOWN(addr - vma->addr) + vma->offset, PGSIZE) < 0)
   {
     printf("readi(): failed. pid=%d\n", p->pid);
     setkilled(p);

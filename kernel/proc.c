@@ -566,12 +566,14 @@ void scheduler(void)
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
     int total_tickets = 0;
+    int total_ticks = 0;
     for (p = proc; p < &proc[NPROC]; p++)
     {
       acquire(&p->lock);
       if (p->state == RUNNABLE)
       {
         total_tickets += p->tickets;
+        total_ticks += p->ticks;
       }
       release(&p->lock);
     }
@@ -581,7 +583,7 @@ void scheduler(void)
       continue;
     }
 
-    int seed = ticks;
+    int seed = total_tickets + total_ticks;
     int random = randomrange(seed, 1, total_tickets);
 
     for (p = proc; p < &proc[NPROC]; p++)

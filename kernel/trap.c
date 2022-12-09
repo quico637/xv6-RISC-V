@@ -46,14 +46,13 @@ void allocPhysicalVMA(struct vma *vma, struct proc *p, uint64 addr, int prot)
   // para que no vea cosas de procesos anteriores.
   memset(phy_addr, 0, PGSIZE);
 
-  struct file *f = vma->mfile;
-  ilock(f->ip);
-  if (readi(f->ip, 0, (uint64)phy_addr, PGROUNDDOWN(addr - vma->addr) + vma->offset, PGSIZE) < 0)
+  ilock(vma->ip);
+  if (readi(vma->ip, 0, (uint64)phy_addr, PGROUNDDOWN(addr - vma->addr) + vma->offset, PGSIZE) < 0)
   {
     printf("readi(): failed. pid=%d\n", p->pid);
     setkilled(p);
   }
-  iunlock(f->ip);
+  iunlockput(vma->ip);
 
   if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)phy_addr, prot) < 0)
   {

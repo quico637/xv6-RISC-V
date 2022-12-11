@@ -931,7 +931,10 @@ int deallocvma(uint64 addr, int size)
           if (getref((void*)walkaddr(p->pagetable, addr+j)) == 1)
             uvmunmap(p->pagetable, addr + j, 1, 1);
           else
+          {
+            decref((void*)walkaddr(p->pagetable, addr+j));
             uvmunmap(p->pagetable, addr + j, 1, 0);
+          }
           iunlock(p->vmas[i]->mfile->ip);
           end_op();
           j += w;
@@ -947,7 +950,10 @@ int deallocvma(uint64 addr, int size)
             if (getref((void*)phy_addr) == 1)
               uvmunmap(p->pagetable, addr + j * PGSIZE, 1, 1);
             else
+            {
+              decref((void*)phy_addr);
               uvmunmap(p->pagetable, addr + j * PGSIZE, 1, 0);
+            }
           }
         }
       }

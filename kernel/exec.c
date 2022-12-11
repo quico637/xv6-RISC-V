@@ -143,12 +143,6 @@ exec(char *path, char **argv)
   // value, which goes in a0.
   p->trapframe->a1 = sp;
 
-  // /* INIT SET TICKETS */
-  // if(p->name[0] == 'i' && p->name == "n" && p->name == "i" && p->name == "t" && p->name == '\0') {
-  //   p->tickets = 1;
-  // }
-
-
   // Save program name for debugging.
   for(last=s=path; *s; s++)
     if(*s == '/')

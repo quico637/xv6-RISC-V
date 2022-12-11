@@ -161,7 +161,7 @@ void usertrap(void)
         solved = 1;
       }
     }
-    else if (addr >= 0 && addr < (p->data.addr + p->data.size))
+    else if (addr >= p->data.addr && addr < (p->data.addr + p->data.size))
     {
       int prot = PTE_R | PTE_W;
       allocPhysicalVMA(&(p->data), p, addr, prot | PTE_U);
@@ -347,7 +347,7 @@ void kerneltrap()
         solved = 1;
       }
     }
-    else if (addr >= 0 && addr < (p->data.addr + p->data.size))
+    else if (addr >= p->data.addr && addr < (p->data.addr + p->data.size))
     {
       int prot = PTE_R | PTE_W;
       allocPhysicalVMA(&(p->data), p, addr, prot | PTE_U);

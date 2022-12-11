@@ -144,37 +144,31 @@ sys_mmap(void)
   
   if(argfd(4, &fd, &f) < 0)
   {
-    addr = (uint64) MAP_FAILED;
     return (void *) MAP_FAILED;
   }
     
   if(prot != PROT_READ && prot != PROT_WRITE && prot != PROT_RW)
   {
-    addr = (uint64) MAP_FAILED;
     return (void *) MAP_FAILED;
   }
 
   if(flags != MAP_SHARED  && flags != MAP_PRIVATE)
   {
-    addr = (uint64) MAP_FAILED;
     return (void *) MAP_FAILED;
   }
 
   if(f->readable == 0)
   {
-    addr = (uint64) MAP_FAILED;
     return (void *) MAP_FAILED;
   }
 
   if((flags == MAP_SHARED) && (prot == PROT_WRITE || prot == PROT_RW) && f->writable == 0)
   {
-    addr = (uint64) MAP_FAILED;
     return (void *) MAP_FAILED;
   }
 
   if(length < 0)
   {
-    addr = (uint64) MAP_FAILED;
     return (void *) MAP_FAILED;
   }
 

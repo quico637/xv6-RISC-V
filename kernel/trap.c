@@ -165,6 +165,7 @@ void usertrap(void)
     {
       int prot = PTE_R | PTE_W;
       allocPhysicalVMA(&(p->data), p, addr, prot | PTE_U);
+      solved = 1;
     }
     else
     {

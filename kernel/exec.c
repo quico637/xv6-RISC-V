@@ -87,8 +87,8 @@ exec(char *path, char **argv)
     //if(loadseg(pagetable, ph.vaddr, ip, ph.off, ph.filesz) < 0)
     //  goto bad;
   }
-  allocvmaelf(textsz, ip, textoff, textinit, 1);
-  allocvmaelf(datasz, ip, dataoff, PGROUNDUP(textinit + textsz), 0);
+  allocvmaelf(p, textsz, ip, textoff, textinit, 1);
+  allocvmaelf(p, datasz, ip, dataoff, PGROUNDUP(textinit + textsz), 0);
   iunlock(ip);
   end_op();
   ip = 0;

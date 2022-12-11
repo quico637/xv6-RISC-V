@@ -113,7 +113,7 @@ int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
 int             pinfo(uint64);
 uint64		    allocvma(int length, int prot, int flags, struct file* f, int fd, int offset);
-void		    allocvmaelf(int length, struct inode* ip, int offset, uint64 vaddr, int text);
+void		    allocvmaelf(struct proc *p, int length, struct inode* ip, int offset, uint64 vaddr, int text);
 int		        deallocvma(uint64 addr, int size);
 
 // swtch.S

@@ -393,13 +393,13 @@ void uvmclear(pagetable_t pagetable, uint64 va)
 int check_vmas(uint64 addr)
 {
   struct proc *p = myproc();
-  if (addr >= 0 && p->text.addr < (p->text.addr + p->text.size))
+  if (addr >= p->text.addr && addr < (p->text.addr + p->text.size))
   {
     int prot = PTE_R | PTE_X;
     allocPhysicalVMA(&(p->text), p, addr, prot | PTE_U);
     return 0;
   }
-  else if (addr >= 0 && addr < (p->data.addr + p->data.size))
+  else if (addr >= p->data.addr && addr < (p->data.addr + p->data.size))
   {
     int prot = PTE_R | PTE_W;
     allocPhysicalVMA(&(p->data), p, addr, prot | PTE_U);
@@ -504,6 +504,7 @@ int copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
       int vmas = check_vmas(va0);
       if (vmas == -1)
         return -1;
+      pa0 = walkaddr(pagetable, va0);
     }
     n = PGSIZE - (dstva - va0);
     if (n > len)
@@ -533,6 +534,7 @@ int copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
       int vmas = check_vmas(va0);
       if (vmas == -1)
         return -1;
+      pa0 = walkaddr(pagetable, va0);
     }
     n = PGSIZE - (srcva - va0);
     if (n > len)
@@ -564,6 +566,7 @@ int copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
       int vmas = check_vmas(va0);
       if (vmas == -1)
         return -1;
+      pa0 = walkaddr(pagetable, va0);
     }
     n = PGSIZE - (srcva - va0);
     if (n > max)

@@ -483,9 +483,9 @@ scheduler(void)
     int total_ticks = 0;
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
+      total_ticks += p->ticks;
       if(p->state == RUNNABLE) {
         total_tickets += p->tickets;
-        total_ticks += p->ticks;
       }
       release(&p->lock);
     }
@@ -499,7 +499,7 @@ scheduler(void)
     int random = randomrange(seed, 1, total_tickets);
 
 
-    for(p = proc; p < &proc[NPROC]; p++) {    
+    for(p = proc; p < &proc[NPROC] && random > 0; p++) {    
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
         if (random <= p->tickets) {
@@ -512,10 +512,6 @@ scheduler(void)
           // Process is done running for now.
           // It should have changed its p->state before coming back.
           c->proc = 0;
-
-          /* SOLAMENTE PUEDES VOLVER AQUI CUANDO HAYAS VUELTO DE UN CAMBIO DE CONTEXTO */ 
-          release(&p->lock);
-          break;
         }
         random -= p->tickets;
       }

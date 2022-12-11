@@ -52,7 +52,7 @@ void allocPhysicalVMA(struct vma *vma, struct proc *p, uint64 addr, int prot)
     printf("readi(): failed. pid=%d\n", p->pid);
     setkilled(p);
   }
-  iunlockput(vma->ip);
+  iunlock(vma->ip);
 
   if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)phy_addr, prot) < 0)
   {

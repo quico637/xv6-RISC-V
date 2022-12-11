@@ -87,10 +87,9 @@ exec(char *path, char **argv)
     //if(loadseg(pagetable, ph.vaddr, ip, ph.off, ph.filesz) < 0)
     //  goto bad;
   }
-
-  iunlock(ip);
   allocvmaelf(textsz, ip, textoff, textinit, 1);
   allocvmaelf(datasz, ip, dataoff, PGROUNDUP(textinit + textsz), 0);
+  iunlock(ip);
   end_op();
   ip = 0;
 
@@ -99,10 +98,9 @@ exec(char *path, char **argv)
   /* SETTING UP NUMBER OF TICKS */
   p->ticks = 0;
 
-  sz = PGROUNDUP(textsz) + PGROUNDUP(datasz);
+  sz = PGROUNDUP(textsz + datasz);
 
   uint64 oldsz = p->sz;
-  // p->nmp = TRAPFRAME;
 
   // Allocate two pages at the next page boundary.
   // Make the first inaccessible as a stack guard.

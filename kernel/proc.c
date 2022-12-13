@@ -854,7 +854,7 @@ allocvma(int length, int prot, int flags, struct file *f, int fd, int offset)
           vmas[j].mfile = f;
           vmas[j].prot = prot;
           vmas[j].flags = flags;
-          vmas[j].size = length;
+          vmas[j].size = PGROUNDUP(length);
           vmas[j].offset = 0;
           vmas[j].fd = fd;
           vmas[j].mfile->ref++;

@@ -141,7 +141,7 @@ sys_mmap(void)
   argint(1, &length);
   argint(2, &prot);
   argint(3, &flags);
-  argint(4, &offset);
+  argint(5, &offset);
   
   if(argfd(4, &fd, &f) < 0)
   {

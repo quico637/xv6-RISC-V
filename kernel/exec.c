@@ -93,7 +93,8 @@ exec(char *path, char **argv)
   }
   allocvmaelf(p, textsz, textfilesz, ip, textoff, textinit, 1);
   allocvmaelf(p, datasz, datafilesz, ip, dataoff, PGROUNDUP(textinit + textsz), 0);
-  iunlock(ip);
+  idup(ip);
+  iunlockput(ip);
   end_op();
   ip = 0;
 

@@ -48,9 +48,12 @@ void allocPhysicalVMA(struct vma *vma, struct proc *p, uint64 addr, int prot)
 
   ilock(vma->ip);
   int size = PGSIZE;
-  if (((vma->addr + vma->filesize) - PGROUNDDOWN(addr - vma->addr)) < size)
+  if (vma->filesize < PGSIZE) {
+    size = vma->filesize;
+  }
+  else if (((vma->filesize) - PGROUNDUP(addr - vma->addr)) < 0)
   {
-    size = ((vma->addr + vma->filesize) - PGROUNDDOWN(addr - vma->addr));
+    size = ((vma->addr + vma->filesize) - PGROUNDDOWN(addr));
   }
   if (readi(vma->ip, 0, (uint64)phy_addr, PGROUNDDOWN(addr - vma->addr) + vma->offset, size) < 0)
   {
@@ -165,6 +168,12 @@ void usertrap(void)
         }
         solved = 1;
       }
+    }
+    else if (addr >= p->text.addr && addr < (p->text.addr + p->text.size))
+    {
+      int prot = PTE_R | PTE_X;
+      allocPhysicalVMA(&(p->text), p, addr, prot | PTE_U);
+      solved = 1;
     }
     else if (addr >= p->data.addr && addr < (p->data.addr + p->data.size))
     {
@@ -353,10 +362,17 @@ void kerneltrap()
         solved = 1;
       }
     }
+    else if (addr >= p->text.addr && addr < (p->text.addr + p->text.size))
+    {
+      int prot = PTE_R | PTE_X;
+      allocPhysicalVMA(&(p->text), p, addr, prot | PTE_U);
+      solved = 1;
+    }
     else if (addr >= p->data.addr && addr < (p->data.addr + p->data.size))
     {
       int prot = PTE_R | PTE_W;
       allocPhysicalVMA(&(p->data), p, addr, prot | PTE_U);
+      solved = 1;
     }
     else
     {

@@ -316,7 +316,7 @@ int fork(void)
   allocvmaelf(np, p->text.size, p->text.filesize, p->text.ip, p->text.offset, p->text.addr, 1);
   allocvmaelf(np, p->data.size, p->data.filesize, p->data.ip, p->data.offset, p->data.addr, 0);
 
-  if (uvmcopy(p->pagetable, np->pagetable, p->sz) < 0)
+  if (_uvmcopy(p->pagetable, np->pagetable, p->sz, PGROUNDUP(p->text.addr + p->text.size)) < 0)
   {
     freeproc(np);
     release(&np->lock);
@@ -356,10 +356,13 @@ int fork(void)
           np->vmas[i] = &vmas[j];
           vmas[j].used = 1;
           vmas[j].mfile = p->vmas[i]->mfile;
+          vmas[j].fd = p->vmas[i]->fd;
           vmas[j].prot = p->vmas[i]->prot;
           vmas[j].flags = p->vmas[i]->flags;
           vmas[j].size = p->vmas[i]->size;
+          vmas[j].filesize = p->vmas[i]->filesize;
           vmas[j].offset = p->vmas[i]->offset;
+          vmas[j].ip = p->vmas[i]->ip;
           vmas[j].mfile->ref++;
           np->nmp -= PGROUNDUP(vmas[j].size);
           vmas[j].addr = np->nmp;

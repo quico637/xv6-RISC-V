@@ -39,7 +39,7 @@ void allocPhysicalVMA(struct vma *vma, struct proc *p, uint64 addr, int prot)
   char *phy_addr = kalloc();
   if (phy_addr == 0)
   {
-    printf("usertrap(): No physical pages available. pid=%d\n", p->pid);
+    printf("allocPhysicalVMA(): No physical pages available. pid=%d\n", p->pid);
     setkilled(p);
   }
 
@@ -47,9 +47,14 @@ void allocPhysicalVMA(struct vma *vma, struct proc *p, uint64 addr, int prot)
   memset(phy_addr, 0, PGSIZE);
 
   ilock(vma->ip);
-  if (readi(vma->ip, 0, (uint64)phy_addr, PGROUNDDOWN(addr - vma->addr) + vma->offset, PGSIZE) < 0)
+  int size = PGSIZE;
+  if (((vma->addr + vma->filesize) - PGROUNDDOWN(addr - vma->addr)) < size)
   {
-    printf("readi(): failed. pid=%d\n", p->pid);
+    size = ((vma->addr + vma->filesize) - PGROUNDDOWN(addr - vma->addr));
+  }
+  if (readi(vma->ip, 0, (uint64)phy_addr, PGROUNDDOWN(addr - vma->addr) + vma->offset, size) < 0)
+  {
+    printf("allocPhysicalVMA(): failed. pid=%d\n", p->pid);
     setkilled(p);
   }
   iunlock(vma->ip);
@@ -57,7 +62,7 @@ void allocPhysicalVMA(struct vma *vma, struct proc *p, uint64 addr, int prot)
   if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)phy_addr, prot) < 0)
   {
     kfree(phy_addr);
-    printf("usertrap(): Could not map physical to virtual address, pid=%d\n", p->pid);
+    printf("allocPhysicalVMA(): Could not map physical to virtual address, pid=%d\n", p->pid);
     setkilled(p);
   }
 }
@@ -326,7 +331,7 @@ void kerneltrap()
           char *new_phy = kalloc();
           if (new_phy == 0)
           {
-            printf("usertrap(): No physical pages available. pid=%d\n", p->pid);
+            printf("kerneltrap(): No physical pages available. pid=%d\n", p->pid);
             setkilled(p);
           }
           memcpy(new_phy, (void *)phy, PGSIZE);
@@ -335,7 +340,7 @@ void kerneltrap()
           if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)new_phy, PTE_FLAGS(*pte) | PTE_W) < 0)
           {
             kfree(new_phy);
-            printf("usertrap(): Could not map physical to virtual address, pid=%d\n", p->pid);
+            printf("kerneltrap(): Could not map physical to virtual address, pid=%d\n", p->pid);
             setkilled(p);
           }
           decref((void *)phy);
@@ -388,7 +393,7 @@ void kerneltrap()
     // fallo
     if (!solved)
     {
-      printf("usertrap(): Wrong memory address. Not your business. pid=%d\n", p->pid);
+      printf("kerneltrap(): Wrong memory address. Not your business. pid=%d\n", p->pid);
       setkilled(p);
     }
   }

@@ -313,10 +313,10 @@ int fork(void)
   }
 
   // Copy user memory from parent to child.
-  allocvmaelf(np, p->text.size, p->text.ip, p->text.offset, p->text.addr, 1);
-  allocvmaelf(np, p->data.size, p->data.ip, p->data.offset, p->data.addr, 0);
+  allocvmaelf(np, p->text.size, p->text.filesize, p->text.ip, p->text.offset, p->text.addr, 1);
+  allocvmaelf(np, p->data.size, p->data.filesize, p->data.ip, p->data.offset, p->data.addr, 0);
 
-  if (_uvmcopy(p->pagetable, np->pagetable, p->sz, PGROUNDUP(p->data.addr + p->data.size)) < 0)
+  if (uvmcopy(p->pagetable, np->pagetable, p->sz) < 0)
   {
     freeproc(np);
     release(&np->lock);
@@ -865,6 +865,7 @@ allocvma(int length, int prot, int flags, struct file *f, int fd, int offset)
           vmas[j].prot = prot;
           vmas[j].flags = flags;
           vmas[j].size = length;
+          vmas[j].filesize = length;
           vmas[j].offset = offset;
           vmas[j].fd = fd;
           vmas[j].ip = f->ip;
@@ -882,7 +883,7 @@ allocvma(int length, int prot, int flags, struct file *f, int fd, int offset)
   return (uint64)MAP_FAILED;
 }
 
-void allocvmaelf(struct proc *p, int length, struct inode *ip, int offset, uint64 vaddr, int text)
+void allocvmaelf(struct proc *p, int length, int filesz, struct inode *ip, int offset, uint64 vaddr, int text)
 {
   struct vma *vma = &(p->data);
   int flags = PROT_RW;
@@ -895,6 +896,7 @@ void allocvmaelf(struct proc *p, int length, struct inode *ip, int offset, uint6
   vma->prot = MAP_PRIVATE;
   vma->flags = flags;
   vma->size = length;
+  vma->filesize = filesz;
   vma->offset = offset;
   vma->ip = ip;
   vma->addr = vaddr;

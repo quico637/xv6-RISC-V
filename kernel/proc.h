@@ -28,6 +28,7 @@ struct vma {
   int prot;                 // Protections associated to the file
   int flags;                // Flags associated to the file
   int size;                 // size of the file. It could not be equal to the file in disk size.
+  int filesize;             // size of data inside file.
   int offset;               // We assume it is 0.
 };
 

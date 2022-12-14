@@ -51,6 +51,8 @@ exec(char *path, char **argv)
 
   // Load program into memory.
   uint64 textsz = 0;
+  uint64 textfilesz = 0;
+  uint64 datafilesz = 0;
   uint64 datasz = 0;
   int textinit = 0;
   int textoff = -1;
@@ -69,6 +71,7 @@ exec(char *path, char **argv)
     //uint64 sz1;
     if (flags2perm(ph.flags) == PTE_X) {
       textsz += ph.memsz;
+      textfilesz += ph.filesz;
       if (textoff == -1) {
         textinit = ph.vaddr;
         textoff = ph.off;
@@ -76,6 +79,7 @@ exec(char *path, char **argv)
     }
     else if (flags2perm(ph.flags) == PTE_W) {
       datasz += ph.memsz;
+      datafilesz += ph.filesz;
       if (dataoff == -1) {
         dataoff = ph.off;
       }
@@ -87,8 +91,8 @@ exec(char *path, char **argv)
     //if(loadseg(pagetable, ph.vaddr, ip, ph.off, ph.filesz) < 0)
     //  goto bad;
   }
-  allocvmaelf(p, textsz, ip, textoff, textinit, 1);
-  allocvmaelf(p, datasz, ip, dataoff, PGROUNDUP(textinit + textsz), 0);
+  allocvmaelf(p, textsz, textfilesz, ip, textoff, textinit, 1);
+  allocvmaelf(p, datasz, datafilesz, ip, dataoff, PGROUNDUP(textinit + textsz), 0);
   iunlock(ip);
   end_op();
   ip = 0;
@@ -98,7 +102,7 @@ exec(char *path, char **argv)
   /* SETTING UP NUMBER OF TICKS */
   p->ticks = 0;
 
-  sz = PGROUNDUP(textsz + datasz);
+  sz = PGROUNDUP(textsz) + PGROUNDUP(datasz);
 
   uint64 oldsz = p->sz;
 

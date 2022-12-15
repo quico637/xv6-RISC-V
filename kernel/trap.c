@@ -48,19 +48,22 @@ void allocPhysicalVMA(struct vma *vma, struct proc *p, uint64 addr, int prot)
 
   ilock(vma->ip);
   int size = PGSIZE;
-  if (vma->filesize < PGSIZE) {
-    size = vma->filesize;
-  }
-  else if (((vma->filesize) - PGROUNDUP(addr - vma->addr)) < 0)
+
+  if (addr > (vma->addr + vma->filesize))
   {
-    size = ((vma->addr + vma->filesize) - PGROUNDDOWN(addr));
+    if(addr >= PGROUNDUP(vma->addr + vma->filesize))
+      size = 0;
+    else 
+      size = vma->filesize;
   }
+  
   if (readi(vma->ip, 0, (uint64)phy_addr, PGROUNDDOWN(addr - vma->addr) + vma->offset, size) < 0)
   {
     printf("allocPhysicalVMA(): failed. pid=%d\n", p->pid);
     setkilled(p);
   }
   iunlock(vma->ip);
+
 
   if (mappages(p->pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)phy_addr, prot) < 0)
   {

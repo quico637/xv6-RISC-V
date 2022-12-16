@@ -974,15 +974,15 @@ int deallocvma(uint64 addr, int size)
       }
       else
       {
-        for (int j = 0; j < size / PGSIZE; j++)
+        for (int j = 0; j < PGROUNDUP(size); j += PGSIZE)
         {
-          uint64 phy_addr = walkaddr(p->pagetable, addr + j * PGSIZE);
+          uint64 phy_addr = walkaddr(p->pagetable, addr + j);
           if (phy_addr)
           {
             if (getref((void *)phy_addr) == 1)
-              uvmunmap(p->pagetable, addr + j * PGSIZE, 1, 1);
+              uvmunmap(p->pagetable, addr + j, 1, 1);
             else
-              uvmunmap(p->pagetable, addr + j * PGSIZE, 1, 0);
+              uvmunmap(p->pagetable, addr + j, 1, 0);
           }
         }
       }
@@ -1017,15 +1017,12 @@ int deallocvma(uint64 addr, int size)
 void _deallocvma(struct vma* vma)
 {
   struct proc* p = myproc();
-  for (int j = 0; j < vma->size / PGSIZE; j++)
+  for (int j = 0; j < PGROUNDUP(vma->size); j += PGSIZE)
   {
-    uint64 phy_addr = walkaddr(p->pagetable, vma->addr + j * PGSIZE);
+    uint64 phy_addr = walkaddr(p->pagetable, vma->addr + j);
     if (phy_addr)
     {
-      if (getref((void *)phy_addr) == 1)
-        uvmunmap(p->pagetable, vma->addr + j * PGSIZE, 1, 1);
-      else
-        uvmunmap(p->pagetable, vma->addr + j * PGSIZE, 1, 0);
+      uvmunmap(p->pagetable, vma->addr + j, 1, 1);
     }
   }
   vma->used = 0;

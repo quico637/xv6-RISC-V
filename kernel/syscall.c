@@ -105,6 +105,7 @@ extern uint64 sys_settickets(void);
 extern uint64 sys_getpinfo(void);
 extern uint64 sys_mmap(void);
 extern uint64 sys_munmap(void);
+extern uint64 sys_getpagefaults(void);
 
 
 // An array mapping syscall numbers from syscall.h
@@ -135,6 +136,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_getpinfo]  sys_getpinfo,
 [SYS_mmap]  sys_mmap,
 [SYS_munmap]  sys_munmap,
+[SYS_getpagefaults] sys_getpagefaults,
 };
 
 void

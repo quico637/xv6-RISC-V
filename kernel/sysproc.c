@@ -212,3 +212,11 @@ sys_munmap(void)
 
   return deallocvma(addr, size);
 }
+
+int
+sys_getpagefaults(void)
+{
+  struct proc* p = myproc();
+  return p->page_faults;
+}
+

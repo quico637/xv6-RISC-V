@@ -144,6 +144,7 @@ found:
   p->state = USED;
 
   p->nmp = TRAPFRAME;
+  p->page_faults = 0;
 
   // Allocate a trapframe page.
   if ((p->trapframe = (struct trapframe *)kalloc()) == 0)

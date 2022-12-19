@@ -113,6 +113,9 @@ struct proc {
   struct vma text;
   struct vma data;
 
+  // PAGE FAULTS
+  int page_faults;
+
   // wait_lock must be held when using this:
   struct proc *parent;         // Parent process
 

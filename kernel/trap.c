@@ -62,6 +62,7 @@ void allocPhysicalVMA(struct vma *vma, struct proc *p, uint64 addr, int prot)
       setkilled(p);
     }
   }
+  p->page_faults++;
   iunlock(vma->ip);
 
 

@@ -574,10 +574,10 @@ void scheduler(void)
     for (p = proc; p < &proc[NPROC]; p++)
     {
       acquire(&p->lock);
+      total_ticks += p->ticks;
       if (p->state == RUNNABLE)
       {
         total_tickets += p->tickets;
-        total_ticks += p->ticks;
       }
       release(&p->lock);
     }
@@ -590,7 +590,7 @@ void scheduler(void)
     int seed = total_tickets + total_ticks;
     int random = randomrange(seed, 1, total_tickets);
 
-    for (p = proc; p < &proc[NPROC]; p++)
+    for (p = proc; p < &proc[NPROC] && random > 0; p++)
     {
       acquire(&p->lock);
       if (p->state == RUNNABLE)
@@ -606,10 +606,6 @@ void scheduler(void)
           // Process is done running for now.
           // It should have changed its p->state before coming back.
           c->proc = 0;
-
-          /* SOLAMENTE PUEDES VOLVER AQUI CUANDO HAYAS VUELTO DE UN CAMBIO DE CONTEXTO */
-          release(&p->lock);
-          break;
         }
         random -= p->tickets;
       }
@@ -967,7 +963,10 @@ int deallocvma(uint64 addr, int size)
           if (getref((void *)walkaddr(p->pagetable, addr + j)) == 1)
             uvmunmap(p->pagetable, addr + j, 1, 1);
           else
+          {
+            decref((void*)walkaddr(p->pagetable, addr+j));
             uvmunmap(p->pagetable, addr + j, 1, 0);
+          }
           iunlock(p->vmas[i]->ip);
           end_op();
           j += w;

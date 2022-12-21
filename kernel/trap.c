@@ -283,7 +283,7 @@ void kerneltrap()
     uint64 phy = walkaddr(p->pagetable, addr);
     if (phy && r_scause() == 15)
     {
-      for (int i = 0; i < PER_PROCESS_VMAS && !solved; i++)
+      for (int i = 0; i < PER_PROCESS_VMAS && !cow; i++)
       {
         if (p->vmas[i] == 0)
           continue;
@@ -291,7 +291,6 @@ void kerneltrap()
         if (addr >= p->vmas[i]->addr && addr < (p->vmas[i]->addr + p->vmas[i]->size))
         {
           cow = 1;
-          break;
         }
       }
       if (cow)

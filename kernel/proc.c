@@ -561,13 +561,13 @@ void scheduler(void)
     intr_on();
     int total_tickets = 0;
     int total_ticks = 0;
-    for(p = proc; p < &proc[NPROC]; p++)
+    for (p = proc; p < &proc[NPROC]; p++)
     {
       acquire(&p->lock);
-      if(p->state == RUNNABLE)
+      total_ticks += p->ticks;
+      if (p->state == RUNNABLE)
       {
         total_tickets += p->tickets;
-        total_ticks += p->ticks;
       }
       release(&p->lock);
     }
@@ -580,9 +580,10 @@ void scheduler(void)
     int seed = total_tickets + total_ticks;
     int random = randomrange(seed, 1, total_tickets);
 
-    for(p = proc; p < &proc[NPROC] && random > 0; p++) {    
+    for (p = proc; p < &proc[NPROC] && random > 0; p++)
+    {    
       acquire(&p->lock);
-      if(p->state == RUNNABLE)
+      if (p->state == RUNNABLE)
       {
         if (random <= p->tickets)
         {

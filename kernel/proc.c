@@ -450,17 +450,6 @@ int wait(uint64 addr)
   }
 }
 
-void release_all_except(struct proc *selected)
-{
-  struct proc *p;
-  for (p = proc; p < &proc[NPROC]; p++)
-  {
-    if (p == selected)
-      continue;
-    release(&p->lock);
-  }
-}
-
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:

@@ -78,7 +78,6 @@ exec(char *path, char **argv)
   p->ticks = 0;
 
   uint64 oldsz = p->sz;
-  // p->nmp = TRAPFRAME;
 
   // Allocate two pages at the next page boundary.
   // Make the first inaccessible as a stack guard.
@@ -118,12 +117,6 @@ exec(char *path, char **argv)
   // argc is returned via the system call return
   // value, which goes in a0.
   p->trapframe->a1 = sp;
-
-  // /* INIT SET TICKETS */
-  // if(p->name[0] == 'i' && p->name == "n" && p->name == "i" && p->name == "t" && p->name == '\0') {
-  //   p->tickets = 1;
-  // }
-
 
   // Save program name for debugging.
   for(last=s=path; *s; s++)

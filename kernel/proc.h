@@ -18,6 +18,20 @@ struct context {
   uint64 s11;
 };
 
+struct vma {
+  struct spinlock lock;     // lock for race conditions
+  int used;                 // boolean field to check if is used
+  struct file* mfile;       // file mapped to process' virtual address space
+  int fd;                   // file descriptor
+  struct inode* ip;         // inode for text and data VMAs
+  uint64 addr;              // Address were the mapped file begins 
+  int prot;                 // Protections associated to the file
+  int flags;                // Flags associated to the file
+  int size;                 // size of the file. It could not be equal to the file in disk size.
+  int filesize;             // size of data inside file.
+  int offset;               // We assume it is 0.
+};
+
 // Per-CPU state.
 struct cpu {
   struct proc *proc;          // The process running on this cpu, or null.
@@ -92,6 +106,16 @@ struct proc {
   int xstate;                  // Exit status to be returned to parent's wait
   int pid;                     // Process ID
 
+  uint64 nmp;                   // next pointer to VMA
+
+  // VMAS
+  struct vma* vmas[PER_PROCESS_VMAS];
+  struct vma text;
+  struct vma data;
+
+  // PAGE FAULTS
+  int page_faults;
+
   // wait_lock must be held when using this:
   struct proc *parent;         // Parent process
 
@@ -108,4 +132,5 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
 };

@@ -11,3 +11,5 @@
 #define NBUF         (MAXOPBLOCKS*3)  // size of disk block cache
 #define FSSIZE       2000  // size of file system in blocks
 #define MAXPATH      128   // maximum file path name
+#define PER_PROCESS_VMAS    4
+#define NVMAS        (PER_PROCESS_VMAS * NPROC)    // 4 * NPROC

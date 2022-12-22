@@ -9,6 +9,7 @@ struct sleeplock;
 struct stat;
 struct superblock;
 struct pstat;
+struct vma;
 
 // bio.c
 void            binit(void);
@@ -64,6 +65,9 @@ void            ramdiskrw(struct buf*);
 void*           kalloc(void);
 void            kfree(void *);
 void            kinit(void);
+void		incref(void*);
+void		decref(void*);
+uint		getref(void*);
 
 // log.c
 void            initlog(int, struct superblock*);
@@ -108,6 +112,9 @@ int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
 int             pinfo(uint64);
+uint64		    allocvma(int length, int prot, int flags, struct file* f, int fd, int offset);
+void		    allocvmaelf(struct proc *p, int length, int filesz, struct inode* ip, int offset, uint64 vaddr, int text);
+int		        deallocvma(uint64 addr, int size);
 
 // swtch.S
 void            swtch(struct context*, struct context*);
@@ -128,6 +135,7 @@ void            initsleeplock(struct sleeplock*, char*);
 
 // string.c
 int             memcmp(const void*, const void*, uint);
+void*		memcpy(void*, const void*, uint);
 void*           memmove(void*, const void*, uint);
 void*           memset(void*, int, uint);
 char*           safestrcpy(char*, const char*, int);
@@ -143,9 +151,15 @@ int             fetchstr(uint64, char*, int);
 int             fetchaddr(uint64, uint64*);
 void            syscall();
 
+// sysfile.c
+
+int            argfd(int, int *, struct file **);
+
+
 // trap.c
 extern uint     ticks;
 void            trapinit(void);
+void            allocPhysicalVMA(struct vma *vma, struct proc *p, uint64 addr, int prot);
 void            trapinithart(void);
 extern struct spinlock tickslock;
 void            usertrapret(void);
@@ -167,6 +181,7 @@ void            uvmfirst(pagetable_t, uchar *, uint);
 uint64          uvmalloc(pagetable_t, uint64, uint64, int);
 uint64          uvmdealloc(pagetable_t, uint64, uint64);
 int             uvmcopy(pagetable_t, pagetable_t, uint64);
+int             _uvmcopy(pagetable_t, pagetable_t, uint64, uint64);
 void            uvmfree(pagetable_t, uint64);
 void            uvmunmap(pagetable_t, uint64, uint64, int);
 void            uvmclear(pagetable_t, uint64);

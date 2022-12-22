@@ -1,11 +1,16 @@
 #include "types.h"
 #include "riscv.h"
 #include "defs.h"
+#include "fcntl.h"
 #include "param.h"
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
 #include "pstat.h"
+#include "fs.h"
+#include "sleeplock.h"
+#include "file.h"
+
 
 uint64
 sys_exit(void)
@@ -119,3 +124,92 @@ sys_getpinfo(void)
 
   return pinfo(pstat);
 }
+
+void *
+sys_mmap(void)
+{
+  
+  int length, prot, flags, fd, offset;
+  uint64 addr;
+  
+  struct file * f;
+
+
+  // addr y offset podemos asumir q son 0.
+
+  argaddr(0, &addr);
+  argint(1, &length);
+  argint(2, &prot);
+  argint(3, &flags);
+  argint(5, &offset);
+  
+  if(argfd(4, &fd, &f) < 0)
+  {
+    return (void *) MAP_FAILED;
+  }
+    
+  if(prot != PROT_READ && prot != PROT_WRITE && prot != PROT_RW)
+  {
+    return (void *) MAP_FAILED;
+  }
+
+  if(prot == PROT_EXEC)
+  {
+    return (void *) MAP_FAILED;
+  }
+
+  if(flags != MAP_SHARED  && flags != MAP_PRIVATE)
+  {
+    return (void *) MAP_FAILED;
+  }
+
+  if(f->readable == 0)
+  {
+    return (void *) MAP_FAILED;
+  }
+
+  if((flags == MAP_SHARED) && (prot == PROT_WRITE || prot == PROT_RW) && f->writable == 0)
+  {
+    return (void *) MAP_FAILED;
+  }
+
+  if(length < 0)
+  {
+    return (void *) MAP_FAILED;
+  }
+
+  addr = allocvma(length, prot, flags, f, fd, offset);
+  return (void *) addr;
+
+}
+
+
+int
+sys_munmap(void)
+{
+  uint64 addr;
+  int size;
+
+  argaddr(0, &addr);
+  argint(1, &size);
+
+  if(addr <= 0 || (addr % PGSIZE != 0))
+    return -1;
+
+  // Size must be a multiple of PGSIZE
+  if(size < 0 || (size % PGSIZE != 0))
+    return -1;
+
+  if(size == 0)
+    return 0;
+
+  return deallocvma(addr, size);
+}
+
+int
+sys_getpagefaults(void)
+{
+  struct proc* p = myproc();
+  return p->page_faults;
+}
+
